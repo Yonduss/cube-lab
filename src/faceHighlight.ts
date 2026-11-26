@@ -1,5 +1,6 @@
 import type { TwistyPlayer } from 'cubing/twisty';
 import type { BufferGeometry, Mesh, MeshBasicMaterial, Object3D } from 'three';
+import type { CubeFace } from './cubeControls';
 
 const directions = {
   U: ['y', 1],
@@ -10,7 +11,6 @@ const directions = {
   D: ['y', -1],
 } as const;
 
-export type CubeFace = keyof typeof directions;
 type Sticker = Mesh<BufferGeometry, MeshBasicMaterial>;
 
 function isSticker(object: Object3D): object is Sticker {

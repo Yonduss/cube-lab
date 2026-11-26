@@ -1,6 +1,5 @@
-import type { CubeFace } from './faceHighlight';
+import { faceNames, type CubeFace } from './cubeControls';
 
-export const faceNames = { U: 'Up', F: 'Front', R: 'Right', L: 'Left', B: 'Back', D: 'Down' };
 export const hiddenFaces: ReadonlySet<CubeFace> = new Set(['L', 'B', 'D']);
 
 export function FaceGuide({ activeFace, disabled, onHighlight }: {

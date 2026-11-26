@@ -1,14 +1,14 @@
 import { Alg } from 'cubing/alg';
 import type { KPattern } from 'cubing/kpuzzle';
 import { TwistyPlayer } from 'cubing/twisty';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import type { PointerEvent } from 'react';
-import { addFaceHighlight, type CubeFace } from './faceHighlight';
-import { FaceGuide, faceNames, hiddenFaces } from './FaceGuide';
+import { addFaceHighlight } from './faceHighlight';
+import { FaceGuide, hiddenFaces } from './FaceGuide';
+import { defaultBindings, faceNames, findAction, shortcutFromEvent, type CubeFace, type FaceTurn } from './cubeControls';
 import { ThemePicker } from './ThemePicker';
 import { TurnHelp } from './TurnHelp';
-
-type RightTurn = 'R' | "R'";
+import { TurnControls } from './TurnControls';
 
 const defaultView = { cameraLatitude: 35, cameraLongitude: 30, cameraDistance: 6 };
 const orbitHintDelay = 3000;
@@ -19,7 +19,9 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
   const player = useRef<TwistyPlayer>(null);
   const camera = useRef({ latitude: defaultView.cameraLatitude, longitude: defaultView.cameraLongitude });
   const drag = useRef<{ id: number; x: number; y: number } | null>(null);
-  const pendingMove = useRef<RightTurn | null>(null);
+  const pendingMove = useRef<FaceTurn | null>(null);
+  const moveQueue = useRef<FaceTurn[]>([]);
+  const completedMoves = useRef(new Alg());
   const orbitHintTimer = useRef<number | undefined>(undefined);
   const [algorithm, setAlgorithm] = useState(() => new Alg());
   const [turning, setTurning] = useState(false);
@@ -61,9 +63,12 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
       } else if (animationStarted && pendingMove.current) {
         const completedMove = pendingMove.current;
         animationStarted = false;
-        pendingMove.current = null;
-        setAlgorithm((current) => current.concat(completedMove));
-        setTurning(false);
+        completedMoves.current = completedMoves.current.concat(completedMove);
+        setAlgorithm(completedMoves.current);
+        const nextMove = moveQueue.current.shift();
+        pendingMove.current = nextMove ?? null;
+        if (nextMove) cube.experimentalAddMove(nextMove, { cancel: false });
+        else setTurning(false);
       }
     };
     catchUpMove.addFreshListener(onAnimationChange);
@@ -127,13 +132,19 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
     orbitHintTimer.current = window.setTimeout(() => setShowOrbitHint(true), orbitHintDelay);
   }
 
-  function turn(move: RightTurn) {
+  function turn(move: FaceTurn) {
     const cube = player.current;
-    if (!cube || pendingMove.current || highlightedFace) return;
+    if (!cube || highlightedFace) return;
     noteMovement();
 
+    if (pendingMove.current) {
+      moveQueue.current.push(move);
+      return;
+    }
+
     if (!animateTurns) {
-      const next = algorithm.concat(move);
+      const next = completedMoves.current.concat(move);
+      completedMoves.current = next;
       cube.alg = next;
       setAlgorithm(next);
       return;
@@ -176,6 +187,40 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
     if (drag.current?.id === event.pointerId) drag.current = null;
   }
 
+  function resetView() {
+    setView(defaultView.cameraLatitude, defaultView.cameraLongitude);
+  }
+
+  function viewBottom() {
+    setView(-80, camera.current.longitude);
+  }
+
+  function toggleBackView() {
+    setShowBack((backView) => !backView);
+  }
+
+  const onShortcut = useEffectEvent((event: KeyboardEvent) => {
+    if (isHighlighting || event.defaultPrevented) return;
+    const target = event.target;
+    if (target instanceof HTMLElement && (target.isContentEditable || target.closest('input, textarea, select, [role="textbox"]'))) return;
+
+    const shortcut = shortcutFromEvent(event);
+    const action = shortcut && findAction(defaultBindings, shortcut);
+    if (!action) return;
+    event.preventDefault();
+
+    if (action === 'resetView') resetView();
+    else if (action === 'viewBottom') viewBottom();
+    else if (action === 'backView') toggleBackView();
+    else turn(action);
+  });
+
+  useEffect(() => {
+    const listener = (event: KeyboardEvent) => onShortcut(event);
+    window.addEventListener('keydown', listener);
+    return () => window.removeEventListener('keydown', listener);
+  }, []);
+
   function highlightFace(face: CubeFace) {
     if (!turning && !highlightedFace && !drag.current) setHighlightedFace(face);
   }
@@ -216,12 +261,12 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
         <div className="view-controls">
           <p className="orbit-hint" data-visible={showOrbitHint && !isHighlighting}>Drag or swipe to orbit.</p>
           <div className="buttons" role="group" aria-label="Viewer controls">
-            <button type="button" disabled={isHighlighting} aria-pressed={animateTurns} onClick={() => setAnimateTurns(!animateTurns)}>
+            <button type="button" disabled={isHighlighting || turning} aria-pressed={animateTurns} onClick={() => setAnimateTurns(!animateTurns)}>
               Animation: {animateTurns ? 'On' : 'Off'}
             </button>
-            <button type="button" disabled={isHighlighting} onClick={() => setView(defaultView.cameraLatitude, defaultView.cameraLongitude)}>Reset view</button>
-            <button type="button" disabled={isHighlighting} onClick={() => setView(-80, camera.current.longitude)}>View bottom</button>
-            <button type="button" disabled={isHighlighting} onClick={() => setShowBack(!showBack)} aria-pressed={showBack}>Back view</button>
+            <button type="button" disabled={isHighlighting} onClick={resetView}>Reset view</button>
+            <button type="button" disabled={isHighlighting} onClick={viewBottom}>View bottom</button>
+            <button type="button" disabled={isHighlighting} onClick={toggleBackView} aria-pressed={showBack}>Back view</button>
             <button
               type="button"
               disabled={!atDefaultView || isHighlighting}
@@ -234,17 +279,7 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
         </div>
       </section>
 
-      <section className="controls" aria-labelledby="controls-title">
-        <h2 id="controls-title">Right face</h2>
-        <div className="buttons" role="group" aria-label="Right-face turns">
-          <button className="turn-button" type="button" disabled={turning || isHighlighting} onClick={() => turn('R')} aria-label="R, clockwise">
-            R
-          </button>
-          <button className="turn-button" type="button" disabled={turning || isHighlighting} onClick={() => turn("R'")} aria-label="R prime, counterclockwise">
-            R′
-          </button>
-        </div>
-      </section>
+      <TurnControls bindings={defaultBindings} disabled={isHighlighting} onTurn={turn} />
     </main>
   );
 }
