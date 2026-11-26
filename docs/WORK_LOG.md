@@ -42,3 +42,7 @@ See the [project plan](PROJECT_PLAN.md) for acceptance criteria and the [deploym
    - Added persistent theme choices, visible turn directions, and an arrow to the front face in the default view.
    - Verified theme persistence and the front marker with mouse and emulated touch. Recorded customizable keys and camera shortcuts in [issue #4](https://github.com/Yonduss/cube-lab/issues/4).
    - date: 2026-11-26
+8. **Face arrows and turn preferences**
+   - Placed all six arrows outside the cube silhouettes across the default and opposite angles. Added a face-arrow toggle, brief turn help, and an in-page animation toggle.
+   - Verified the six labels, orbit, hover and tap help, and both animated and instant turns in desktop and touch emulation.
+   - date: 2026-11-26

@@ -3,7 +3,9 @@ import type { KPattern } from 'cubing/kpuzzle';
 import { TwistyPlayer } from 'cubing/twisty';
 import { useEffect, useRef, useState } from 'react';
 import type { PointerEvent } from 'react';
+import { FaceGuide } from './FaceGuide';
 import { ThemePicker } from './ThemePicker';
+import { TurnHelp } from './TurnHelp';
 
 type RightTurn = 'R' | "R'";
 
@@ -18,7 +20,12 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
   const [algorithm, setAlgorithm] = useState(() => new Alg());
   const [turning, setTurning] = useState(false);
   const [showBack, setShowBack] = useState(false);
+  const [showLabels, setShowLabels] = useState(true);
   const [atDefaultView, setAtDefaultView] = useState(true);
+  const [animateTurns, setAnimateTurns] = useState(
+    () => !window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+  );
+  const showGuide = atDefaultView && showLabels;
   const isSolved = solvedPattern.applyAlg(algorithm).isIdentical(solvedPattern);
 
   useEffect(() => {
@@ -61,11 +68,18 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
     };
   }, []);
 
+  useEffect(() => {
+    const cube = player.current;
+    if (!cube) return;
+    cube.backView = showGuide ? 'side-by-side' : showBack ? 'top-right' : 'none';
+    cube.cameraDistance = showGuide ? 8.5 : defaultView.cameraDistance;
+  }, [showGuide, showBack]);
+
   function turn(move: RightTurn) {
     const cube = player.current;
     if (!cube || pendingMove.current) return;
 
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (!animateTurns) {
       const next = algorithm.concat(move);
       cube.alg = next;
       setAlgorithm(next);
@@ -108,13 +122,6 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
     if (drag.current?.id === event.pointerId) drag.current = null;
   }
 
-  function toggleBackView() {
-    if (!player.current) return;
-    const next = !showBack;
-    player.current.backView = next ? 'top-right' : 'none';
-    setShowBack(next);
-  }
-
   return (
     <main className="playground">
       <header className="page-header">
@@ -137,33 +144,37 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
             onPointerMove={orbitView}
             onLostPointerCapture={endOrbit}
           />
-          {atDefaultView && (
-            <div className="front-marker">
-              <span>Front (F)</span>
-            </div>
-          )}
+          {showGuide && <FaceGuide />}
         </div>
         <div className="view-controls">
           <p>Drag or swipe to orbit.</p>
           <div className="buttons" role="group" aria-label="Camera controls">
             <button type="button" onClick={() => setView(defaultView.cameraLatitude, defaultView.cameraLongitude)}>Reset view</button>
             <button type="button" onClick={() => setView(-80, camera.current.longitude)}>View bottom</button>
-            <button type="button" onClick={toggleBackView} aria-pressed={showBack}>Back view</button>
+            <button type="button" onClick={() => setShowBack(!showBack)} aria-pressed={showBack}>
+              {showGuide ? 'Keep back view' : 'Back view'}
+            </button>
+            <button type="button" onClick={() => setShowLabels(!showLabels)} aria-pressed={showLabels}>
+              Face arrows
+            </button>
           </div>
         </div>
       </section>
 
       <section className="controls" aria-labelledby="controls-title">
-        <div>
-          <h2 id="controls-title">Right face</h2>
-          <p>Turn directions are shown as seen from outside the right face.</p>
-        </div>
-        <div className="buttons">
+        <h2 id="controls-title">Right face</h2>
+        <div className="buttons" role="group" aria-label="Right-face turns">
           <button className="turn-button" type="button" disabled={turning} onClick={() => turn('R')} aria-label="R, clockwise">
-            <strong>R</strong> Clockwise
+            R
           </button>
           <button className="turn-button" type="button" disabled={turning} onClick={() => turn("R'")} aria-label="R prime, counterclockwise">
-            <strong>R′</strong> Counterclockwise
+            R′
+          </button>
+        </div>
+        <div className="buttons">
+          <TurnHelp />
+          <button type="button" aria-pressed={animateTurns} onClick={() => setAnimateTurns(!animateTurns)}>
+            Animation: {animateTurns ? 'On' : 'Off'}
           </button>
         </div>
       </section>
