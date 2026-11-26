@@ -1,14 +1,23 @@
 {
-  "name": "${PROJECT_NAME}",
+  "name": "cube-lab",
   "version": "1.0.0",
-  "description": "",
-  "main": "dist/index.js",
+  "type": "module",
   "scripts": {
-    "build": "tsc"
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview"
   },
-  "dependencies": {},
+  "dependencies": {
+    "cubing": "^0.66.1",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
   "devDependencies": {
-    "typescript": "^6.0.3"
+    "@types/react": "^19.3.3",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.3.0",
+    "typescript": "^6.0.3",
+    "vite": "^8.3.8"
   },
   "private": true
 }
