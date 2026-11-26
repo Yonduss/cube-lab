@@ -242,15 +242,32 @@ h2 {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
+  border-color: light-dark(#394861, #42516b);
+  background: light-dark(#394861, #172131);
+  color: #edf3fc;
+}
+
+.viewer-switch:hover:enabled {
+  background: light-dark(#495a75, #23304a);
+}
+
+.viewer-switch[aria-checked='true'] {
+  border-color: light-dark(#688cbd, #8ab1e5);
+  background: light-dark(#dceaff, #bad6ff);
+  color: #152d52;
+}
+
+.viewer-switch[aria-checked='true']:hover:enabled {
+  background: light-dark(#c8dfff, #a7c8fa);
 }
 
 .switch-track {
   position: relative;
   width: 1.875rem;
   height: 1rem;
-  border: 1px solid var(--button-border);
+  border: 1px solid #91a5bf;
   border-radius: 999px;
-  background: var(--panel);
+  background: #25364c;
 }
 
 .switch-track::after {
@@ -261,16 +278,17 @@ h2 {
   width: 0.625rem;
   height: 0.625rem;
   border-radius: 50%;
-  background: var(--muted);
+  background: #d3deef;
 }
 
 .viewer-switch[aria-checked='true'] .switch-track {
-  border-color: var(--focus);
+  border-color: #496da0;
+  background: #f5f9ff;
 }
 
 .viewer-switch[aria-checked='true'] .switch-track::after {
   transform: translateX(0.875rem);
-  background: var(--focus);
+  background: #245895;
 }
 
 .orbit-hint {
@@ -317,7 +335,13 @@ h2 {
 }
 
 .camera-bindings {
-  margin-top: 0.75rem;
+  margin-top: 1rem;
+}
+
+.camera-bindings h3 {
+  margin: 0 0 0.4rem;
+  color: var(--muted);
+  font-size: 0.875rem;
 }
 
 .turn-face {
@@ -350,12 +374,25 @@ h2 {
 }
 
 kbd {
+  min-width: 1.7rem;
   padding: 0.2rem 0.35rem;
   border: 1px solid var(--button-border);
   border-radius: 0.25rem;
   background: var(--panel);
+  box-shadow: 0 2px var(--button-border);
   font: 0.75rem ui-monospace, monospace;
+  text-align: center;
   white-space: nowrap;
+}
+
+kbd[data-capturing='true'] {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
+button:active kbd {
+  transform: translateY(2px);
+  box-shadow: none;
 }
 
 .buttons {

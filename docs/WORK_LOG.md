@@ -59,3 +59,7 @@ See the [project plan](PROJECT_PLAN.md) for acceptance criteria and the [deploym
     - Spaced the turn help away from its button, replaced changing labels with switches, and used a translucent outline around the selected layer while keeping the camera still.
     - Verified all six turns and inverses, four fast animated turns, key persistence, conflicting bindings, camera controls, and unchanged sticker colors during layer highlighting in desktop and touch-emulated Chromium.
     - date: 2026-11-26
+12. **Control layout, orientation, and position recovery**
+    - Improved light-mode layer contrast and separated display switches from camera controls. Exposed camera keycaps in the normal Turn controls panel.
+    - Added draft keyboard settings with Save and Cancel, whole-cube orientation controls, and local restoration of the last completed 3×3 position.
+    - date: 2026-11-26

@@ -18,8 +18,10 @@ Open the local URL printed by Vite. To check the production build, run `npm run 
 ## Controls
 
 - Press `R`, `L`, `U`, `D`, `F`, or `B` for a clockwise quarter turn. Hold `Shift` with the same letter for the inverse. The **Turn controls** panel includes touch buttons and their current keycaps.
-- Press `0` to reset the camera, `9` to look underneath, and `8` to toggle the rear view. These actions leave the puzzle pattern unchanged.
-- Open **Keyboard settings** to select a shortcut, press a new key, or restore the defaults. Valid changes are saved for the browser.
+- Press `0` to reset the camera, `9` to look underneath, and `8` to toggle the rear view. Their shortcuts are also shown in **Turn controls**.
+- Use **Rotate front** to change the front face by a quarter turn or **Flip cube** to swap top and bottom. Subsequent face turns use the new orientation. The camera stays in place.
+- Open **Keyboard settings**, select a keycap, and press a new shortcut. Use **Save** to apply changes or **Cancel** to keep the last saved shortcuts. **Restore defaults** loads the defaults for review before saving.
+- The 3×3 position and saved shortcuts persist in the browser for the same site and profile.
 
 ## Project documents
 

@@ -33,13 +33,17 @@ export async function addFaceHighlight(player: TwistyPlayer, face: CubeFace): Pr
   const span = cube.scale.clone().set(3.07, 3.07, 3.07);
   span[axis] = 1.07;
 
+  const theme = document.documentElement.dataset.theme;
+  const light = theme === 'light' || (theme !== 'dark' && !matchMedia('(prefers-color-scheme: dark)').matches);
   const glow = template.material.clone();
-  glow.color.setHex(0xffeab0);
+  glow.color.setHex(light ? 0x629ce9 : 0xffeab0);
   glow.transparent = true;
   glow.opacity = 0.12;
   glow.depthWrite = false;
   const edge = glow.clone();
-  edge.opacity = 0.54;
+  edge.color.setHex(light ? 0x164c9c : 0xffeab0);
+  edge.opacity = light ? 0.88 : 0.54;
+  const edgeWidth = light ? 0.032 : 0.023;
 
   const shell = template.clone(false);
   shell.name = 'face-layer-highlight';
@@ -57,7 +61,7 @@ export async function addFaceHighlight(player: TwistyPlayer, face: CubeFace): Pr
       rail.position.copy(center);
       rail.position[across] += side * span[across] / 2;
       rail.position[depth] += level * span[depth] / 2;
-      rail.scale.set(0.023, 0.023, 0.023);
+      rail.scale.set(edgeWidth, edgeWidth, edgeWidth);
       rail.scale[along] = span[along];
       rail.renderOrder = 3;
       cube.add(rail);

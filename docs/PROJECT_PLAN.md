@@ -26,7 +26,7 @@ Mirror Cube is a follow-up candidate. Confirm whether the selected renderer can 
 
 | Feature | Expected behavior |
 | --- | --- |
-| View | Open with a solved 3×3 as the main visual. Drag with a mouse or swipe on the viewer to orbit the camera. Camera movement leaves the puzzle and timer state alone. |
+| View | Open with a solved 3×3 or restore the last completed position saved in the browser. Drag with a mouse or swipe on the viewer to orbit the camera. Camera movement leaves the puzzle and timer state alone. |
 | Turns | Use `R`, `L`, `U`, `D`, `F`, and `B` for quarter turns and `Shift` with the same keys for inverse turns. Provide on-screen controls for both directions so touch users can solve the cube. Show a short control guide. |
 | Scramble | Generate a valid scramble from the solved position and arm the timer when it is ready for play. Scrambling again starts a fresh attempt. |
 | Timer | Start on the first accepted face turn after a scramble. Stop when an accepted move completes the solve. Display the final time until Reset or Scramble. Free play from the initial solved position stays untimed. |
