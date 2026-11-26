@@ -1,10 +1,11 @@
+import { Move, type Alg } from 'cubing/alg';
 import type { KPattern } from 'cubing/kpuzzle';
-import { TwistyPlayer } from 'cubing/twisty';
+import { setTwistyDebug, TwistyPlayer } from 'cubing/twisty';
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import type { PointerEvent } from 'react';
 import { addFaceHighlight } from './faceHighlight';
 import { FaceGuide } from './FaceGuide';
-import { faceNames, findAction, formatShortcut, readBindings, saveBindings, shortcutFromEvent, type Bindings, type CameraAction, type CubeFace } from './cubeControls';
+import { faceNames, findAction, formatShortcut, isViewerAction, readBindings, saveBindings, shortcutFromEvent, viewerActions, viewerNames, type Bindings, type CubeFace, type ViewerAction } from './cubeControls';
 import { readPosition, savePosition, type CubeMove } from './cubePosition';
 import { ThemePicker } from './ThemePicker';
 import { TurnHelp } from './TurnHelp';
@@ -12,19 +13,24 @@ import { TurnControls } from './TurnControls';
 
 const defaultView = { cameraLatitude: 35, cameraLongitude: 30, cameraDistance: 6 };
 const orbitHintDelay = 3000;
-const highlightDuration = 750;
+const highlightDuration = 2000;
+const turnTimeout = 1200;
 
 export function App({ solvedPattern }: { solvedPattern: KPattern }) {
   const viewer = useRef<HTMLDivElement>(null);
   const player = useRef<TwistyPlayer>(null);
+  const rearViewRequested = useRef(false);
   const camera = useRef({ latitude: defaultView.cameraLatitude, longitude: defaultView.cameraLongitude });
   const drag = useRef<{ id: number; x: number; y: number } | null>(null);
   const pendingMove = useRef<CubeMove | null>(null);
   const moveQueue = useRef<CubeMove[]>([]);
+  const startAnimatedMove = useRef<((move: CubeMove) => void) | null>(null);
   const [algorithm, setAlgorithm] = useState(readPosition);
   const completedMoves = useRef(algorithm);
   const orbitHintTimer = useRef<number | undefined>(undefined);
+  const moveID = useRef(0);
   const [turning, setTurning] = useState(false);
+  const [recentMoves, setRecentMoves] = useState<{ id: number; move: CubeMove }[]>([]);
   const [showBack, setShowBack] = useState(false);
   const [showLabels, setShowLabels] = useState(true);
   const [highlightedFace, setHighlightedFace] = useState<CubeFace | null>(null);
@@ -42,7 +48,14 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
     ignoreCenterOrientation: true,
   });
 
+  function recordPosition(next: Alg) {
+    completedMoves.current = next;
+    setAlgorithm(next);
+    savePosition(next);
+  }
+
   useEffect(() => {
+    setTwistyDebug({ shareAllNewRenderers: 'always' });
     const cube = new TwistyPlayer({
       puzzle: '3x3x3',
       visualization: '3D',
@@ -63,18 +76,44 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
 
     const catchUpMove = cube.experimentalModel.catchUpMove;
     let animationStarted = false;
+    let watchdog: number | undefined;
+
+    function recoverTurns() {
+      if (!pendingMove.current) return;
+
+      // An interrupted animation must not keep the queue locked or drop accepted inputs.
+      const moves = [pendingMove.current, ...moveQueue.current];
+      const next = moves.reduce((position, move) => position.concat(move), completedMoves.current);
+      pendingMove.current = null;
+      moveQueue.current = [];
+      animationStarted = false;
+      catchUpMove.set({ move: null, amount: 0 });
+      cube.alg = next;
+      cube.timestamp = 'end';
+      recordPosition(next);
+      setTurning(false);
+    }
+
+    function animateMove(move: CubeMove) {
+      pendingMove.current = move;
+      animationStarted = false;
+      cube.alg = completedMoves.current.concat(move);
+      cube.timestamp = 'end';
+      watchdog = window.setTimeout(recoverTurns, turnTimeout);
+      catchUpMove.set({ move: new Move(move), amount: 0 });
+    }
+
+    startAnimatedMove.current = animateMove;
     const onAnimationChange = ({ move }: { move: object | null }) => {
       if (move) {
         animationStarted = true;
       } else if (animationStarted && pendingMove.current) {
-        const completedMove = pendingMove.current;
+        window.clearTimeout(watchdog);
+        recordPosition(completedMoves.current.concat(pendingMove.current));
         animationStarted = false;
-        completedMoves.current = completedMoves.current.concat(completedMove);
-        setAlgorithm(completedMoves.current);
-        savePosition(completedMoves.current);
+        pendingMove.current = null;
         const nextMove = moveQueue.current.shift();
-        pendingMove.current = nextMove ?? null;
-        if (nextMove) cube.experimentalAddMove(nextMove, { cancel: false });
+        if (nextMove) animateMove(nextMove);
         else setTurning(false);
       }
     };
@@ -82,7 +121,10 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
 
     return () => {
       window.clearTimeout(orbitHintTimer.current);
+      window.clearTimeout(watchdog);
       catchUpMove.removeFreshListener(onAnimationChange);
+      startAnimatedMove.current = null;
+      rearViewRequested.current = false;
       cube.remove();
       player.current = null;
     };
@@ -90,8 +132,36 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
 
   useEffect(() => {
     const cube = player.current;
-    if (!cube) return;
-    cube.backView = showBack ? 'top-right' : 'none';
+    if (!cube || (!showBack && !rearViewRequested.current)) return;
+
+    // Removing the inset through cubing.js also disconnects the main scene's move listener.
+    if (!rearViewRequested.current) {
+      rearViewRequested.current = true;
+      cube.backView = 'top-right';
+    }
+
+    let cancelled = false;
+    let retry: number | undefined;
+    async function updateRearView(attempts: number) {
+      if (cancelled || !cube) return;
+      const [, rear] = [...await cube.experimentalCurrentVantages()];
+      if (cancelled) return;
+      if (rear) {
+        rear.style.display = showBack ? '' : 'none';
+      } else if (attempts > 0) {
+        retry = window.setTimeout(() => { void updateRearView(attempts - 1); }, 16);
+      }
+    }
+
+    void cube.experimentalCurrentThreeJSPuzzleObject().then(
+      () => updateRearView(90),
+      (error: unknown) => { if (!cancelled) console.error('Could not initialize the rear view.', error); },
+    );
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(retry);
+    };
   }, [showBack]);
 
   useEffect(() => {
@@ -100,16 +170,21 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
 
     let cancelled = false;
     let removeHighlight: (() => void) | undefined;
-    // Keep controls usable even if the renderer cannot initialize the highlight.
-    let timer = window.setTimeout(() => setHighlightedFace(null), 2500);
+    function clearHighlight() {
+      cancelled = true;
+      removeHighlight?.();
+      removeHighlight = undefined;
+    }
+    const timer = window.setTimeout(() => {
+      clearHighlight();
+      setHighlightedFace(null);
+    }, highlightDuration);
     void addFaceHighlight(cube, highlightedFace).then((remove) => {
       if (cancelled) {
         remove();
         return;
       }
       removeHighlight = remove;
-      window.clearTimeout(timer);
-      timer = window.setTimeout(() => setHighlightedFace(null), highlightDuration);
     }, (error: unknown) => {
       if (cancelled) return;
       console.error('Could not highlight the face.', error);
@@ -117,9 +192,8 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
     });
 
     return () => {
-      cancelled = true;
       window.clearTimeout(timer);
-      removeHighlight?.();
+      clearHighlight();
     };
   }, [highlightedFace]);
 
@@ -133,6 +207,8 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
     const cube = player.current;
     if (!cube || highlightedFace) return;
     noteMovement();
+    const entry = { id: ++moveID.current, move };
+    setRecentMoves((recent) => [entry, ...recent].slice(0, 3));
 
     if (pendingMove.current) {
       moveQueue.current.push(move);
@@ -141,16 +217,13 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
 
     if (!animateTurns) {
       const next = completedMoves.current.concat(move);
-      completedMoves.current = next;
       cube.alg = next;
-      setAlgorithm(next);
-      savePosition(next);
+      recordPosition(next);
       return;
     }
 
-    pendingMove.current = move;
     setTurning(true);
-    cube.experimentalAddMove(move, { cancel: false });
+    startAnimatedMove.current?.(move);
   }
 
   function setView(latitude: number, longitude: number) {
@@ -189,16 +262,12 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
     setView(defaultView.cameraLatitude, defaultView.cameraLongitude);
   }
 
-  function viewBottom() {
-    setView(-80, camera.current.longitude);
-  }
-
   function toggleBackView() {
     setShowBack((backView) => !backView);
   }
 
-  const cameraCommands: Record<CameraAction, () => void> = {
-    resetView, viewBottom, backView: toggleBackView,
+  const viewerCommands: Record<ViewerAction, () => void> = {
+    resetView, backView: toggleBackView, rotateFront: () => turn('y'), flipCube: () => turn('x2'),
   };
 
   const onShortcut = useEffectEvent((event: KeyboardEvent) => {
@@ -211,7 +280,7 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
     if (!action) return;
     event.preventDefault();
 
-    if (action === 'resetView' || action === 'viewBottom' || action === 'backView') cameraCommands[action]();
+    if (isViewerAction(action)) viewerCommands[action]();
     else turn(action);
   });
 
@@ -262,6 +331,15 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
           {showGuide && (
             <FaceGuide activeFace={highlightedFace} disabled={turning || isHighlighting} onHighlight={highlightFace} />
           )}
+          {recentMoves.length > 0 && (
+            <ol className="recent-moves" aria-label="Recent moves, newest first">
+              {recentMoves.map(({ id, move }) => (
+                <li key={id} aria-label={move === 'x2' ? 'Flip cube' : move === 'y' ? 'Rotate front' : undefined}>
+                  <kbd>{move.replace("'", '′')}</kbd>
+                </li>
+              ))}
+            </ol>
+          )}
         </div>
         <div className="view-controls">
           <p className="orbit-hint" data-visible={showOrbitHint && !isHighlighting}>Drag or swipe to orbit.</p>
@@ -274,10 +352,19 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
               onToggle={() => setShowLabels(!showLabels)}
             />
           </div>
-          <div className="buttons" role="group" aria-label="Viewer camera controls">
-            <button type="button" disabled={isHighlighting} title={formatShortcut(bindings.resetView)} onClick={resetView}>Reset view</button>
-            <button type="button" disabled={isHighlighting} title={formatShortcut(bindings.viewBottom)} onClick={viewBottom}>View bottom</button>
-            <button type="button" disabled={isHighlighting} title={formatShortcut(bindings.backView)} onClick={toggleBackView} aria-pressed={showBack}>Back view</button>
+          <div className="buttons" role="group" aria-label="View and orientation controls">
+            {viewerActions.map((action) => (
+              <button
+                key={action}
+                type="button"
+                disabled={isHighlighting}
+                title={formatShortcut(bindings[action])}
+                onClick={viewerCommands[action]}
+                aria-pressed={action === 'backView' ? showBack : undefined}
+              >
+                {viewerNames[action]}
+              </button>
+            ))}
           </div>
         </div>
       </section>
@@ -289,7 +376,7 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
         onSettings={() => setSettingsOpen(!settingsOpen)}
         onBindings={updateBindings}
         onTurn={turn}
-        onCamera={(action) => cameraCommands[action]()}
+        onViewerAction={(action) => viewerCommands[action]()}
         backView={showBack}
       />
     </main>

@@ -109,6 +109,45 @@ h2 {
   cursor: grabbing;
 }
 
+.recent-moves {
+  position: absolute;
+  right: clamp(0.5rem, 2vw, 1.25rem);
+  bottom: 0.625rem;
+  display: grid;
+  justify-items: end;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  pointer-events: none;
+}
+
+.recent-moves kbd {
+  display: block;
+  font-size: 0.875rem;
+}
+
+.recent-moves li:nth-child(2) kbd {
+  font-size: 0.75rem;
+  opacity: 0.72;
+}
+
+.recent-moves li:nth-child(3) kbd {
+  font-size: 0.625rem;
+  opacity: 0.48;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .recent-moves li:first-child kbd {
+    animation: press-keycap 160ms ease-out;
+  }
+}
+
+@keyframes press-keycap {
+  from { transform: translateY(2px) scale(0.92); }
+  to { transform: translateY(0) scale(1); }
+}
+
 .face-guide {
   position: absolute;
   inset: 0;

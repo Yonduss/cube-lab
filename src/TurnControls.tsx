@@ -1,18 +1,18 @@
 import { useEffect, useEffectEvent, useState } from 'react';
 import {
-  actionLabel, cameraActions, cameraNames, defaultBindings, faceNames, faces, findAction,
-  formatShortcut, shortcutFromEvent, type Bindings, type CameraAction, type CubeAction,
+  actionLabel, defaultBindings, faceNames, faces, findAction, viewerActions, viewerNames,
+  formatShortcut, shortcutFromEvent, type Bindings, type CubeAction, type ViewerAction,
 } from './cubeControls';
 import type { CubeMove } from './cubePosition';
 
-export function TurnControls({ bindings, disabled, settingsOpen, onSettings, onBindings, onTurn, onCamera, backView }: {
+export function TurnControls({ bindings, disabled, settingsOpen, onSettings, onBindings, onTurn, onViewerAction, backView }: {
   bindings: Bindings;
   disabled: boolean;
   settingsOpen: boolean;
   onSettings: () => void;
   onBindings: (bindings: Bindings) => void;
   onTurn: (move: CubeMove) => void;
-  onCamera: (action: CameraAction) => void;
+  onViewerAction: (action: ViewerAction) => void;
   backView: boolean;
 }) {
   const [draft, setDraft] = useState<Bindings | null>(null);
@@ -124,31 +124,22 @@ export function TurnControls({ bindings, disabled, settingsOpen, onSettings, onB
         })}
       </div>
       <div className="camera-bindings">
-        <h3>Camera shortcuts</h3>
-        <div className="turn-pair" role="group" aria-label="Camera shortcuts">
-          {cameraActions.map((action) => (
+        <h3>View and orientation shortcuts</h3>
+        <div className="turn-pair" role="group" aria-label="View and orientation shortcuts">
+          {viewerActions.map((action) => (
             <button
               type="button"
               key={action}
               disabled={disabled}
-              onClick={() => settingsOpen ? edit(action) : onCamera(action)}
-              aria-label={settingsOpen ? `Edit ${cameraNames[action]} shortcut` : `${cameraNames[action]} shortcut`}
+              onClick={() => settingsOpen ? edit(action) : onViewerAction(action)}
+              aria-label={settingsOpen ? `Edit ${viewerNames[action]} shortcut` : `${viewerNames[action]} shortcut`}
               aria-pressed={!settingsOpen && action === 'backView' ? backView : undefined}
             >
-              <span>{cameraNames[action]}</span>{keycap(action)}
+              <span>{viewerNames[action]}</span>{keycap(action)}
             </button>
           ))}
         </div>
       </div>
-      {!settingsOpen && (
-        <div className="camera-bindings">
-          <h3>Cube orientation</h3>
-          <div className="buttons" role="group" aria-label="Cube orientation">
-            <button type="button" disabled={disabled} onClick={() => onTurn('y')} title="Rotate the cube around its top and bottom">Rotate front</button>
-            <button type="button" disabled={disabled} onClick={() => onTurn('x2')} title="Turn the cube upside down">Flip cube</button>
-          </div>
-        </div>
-      )}
     </section>
   );
 }

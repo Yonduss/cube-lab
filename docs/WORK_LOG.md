@@ -63,3 +63,7 @@ See the [project plan](PROJECT_PLAN.md) for acceptance criteria and the [deploym
     - Improved light-mode layer contrast and separated display switches from camera controls. Exposed camera keycaps in the normal Turn controls panel.
     - Added draft keyboard settings with Save and Cancel, whole-cube orientation controls, and local restoration of the last completed 3×3 position.
     - date: 2026-11-26
+13. **Viewer rendering and input recovery**
+    - Moved the orientation controls into the viewer, added numeric shortcuts, and showed the three most recent puzzle moves.
+    - Fixed the missing redraw when a face highlight expires and kept the main scene connected when hiding the rear preview. Added recovery for turns that miss their animation completion signal.
+    - date: 2026-11-26

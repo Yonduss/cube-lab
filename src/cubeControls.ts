@@ -6,12 +6,12 @@ export const faceNames: Record<CubeFace, string> = {
   R: 'Right', L: 'Left', U: 'Up', D: 'Down', F: 'Front', B: 'Back',
 };
 
-export const cameraActions = ['resetView', 'viewBottom', 'backView'] as const;
-export type CameraAction = (typeof cameraActions)[number];
-export type CubeAction = FaceTurn | CameraAction;
+export const viewerActions = ['resetView', 'backView', 'rotateFront', 'flipCube'] as const;
+export type ViewerAction = (typeof viewerActions)[number];
+export type CubeAction = FaceTurn | ViewerAction;
 
-export const cameraNames: Record<CameraAction, string> = {
-  resetView: 'Reset view', viewBottom: 'View bottom', backView: 'Back view',
+export const viewerNames: Record<ViewerAction, string> = {
+  resetView: 'Reset view', backView: 'Back view', rotateFront: 'Rotate front', flipCube: 'Flip cube',
 };
 
 export type Shortcut = { key: string; shift: boolean };
@@ -25,8 +25,9 @@ export const defaultBindings: Bindings = {
   F: { key: 'F', shift: false }, "F'": { key: 'F', shift: true },
   B: { key: 'B', shift: false }, "B'": { key: 'B', shift: true },
   resetView: { key: '0', shift: false },
-  viewBottom: { key: '9', shift: false },
   backView: { key: '8', shift: false },
+  rotateFront: { key: '7', shift: false },
+  flipCube: { key: '9', shift: false },
 };
 
 const actions = Object.keys(defaultBindings) as CubeAction[];
@@ -53,8 +54,12 @@ export function findAction(bindings: Bindings, shortcut: Shortcut) {
 }
 
 export function actionLabel(action: CubeAction) {
-  if (action === 'resetView' || action === 'viewBottom' || action === 'backView') return cameraNames[action];
+  if (isViewerAction(action)) return viewerNames[action];
   return action.replace("'", '′');
+}
+
+export function isViewerAction(action: CubeAction): action is ViewerAction {
+  return viewerActions.some((viewerAction) => viewerAction === action);
 }
 
 export function readBindings(): Bindings {
@@ -63,13 +68,28 @@ export function readBindings(): Bindings {
     if (!raw) return defaultBindings;
     const saved: Partial<Bindings> = JSON.parse(raw);
     const combined = { ...defaultBindings };
+    const used = new Set<string>();
+    const missing: CubeAction[] = [];
+    const shortcutID = ({ key, shift }: Shortcut) => `${shift}:${key}`;
     for (const action of actions) {
       const binding = saved?.[action];
-      if (binding && typeof binding.key === 'string' && isBindableKey(binding.key) && typeof binding.shift === 'boolean') {
+      if (binding && typeof binding.key === 'string' && isBindableKey(binding.key)
+        && typeof binding.shift === 'boolean' && !used.has(shortcutID(binding))) {
         combined[action] = binding;
+        used.add(shortcutID(binding));
+      } else {
+        missing.push(action);
       }
     }
-    if (actions.every((action) => findAction(combined, combined[action]) === action)) return combined;
+    // Keep existing custom shortcuts even when a newly added default uses the same key.
+    for (const action of missing) {
+      const preferred = defaultBindings[action];
+      const replacement = [...'7654321098ABCDEFGHIJKLMNOPQRSTUVWXYZ'].find((key) => !used.has(`false:${key}`));
+      const binding = used.has(shortcutID(preferred)) && replacement ? { key: replacement, shift: false } : preferred;
+      combined[action] = binding;
+      used.add(shortcutID(binding));
+    }
+    return combined;
   } catch {
     // Keep the default controls if storage is blocked or invalid.
   }

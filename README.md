@@ -18,8 +18,8 @@ Open the local URL printed by Vite. To check the production build, run `npm run 
 ## Controls
 
 - Press `R`, `L`, `U`, `D`, `F`, or `B` for a clockwise quarter turn. Hold `Shift` with the same letter for the inverse. The **Turn controls** panel includes touch buttons and their current keycaps.
-- Press `0` to reset the camera, `9` to look underneath, and `8` to toggle the rear view. Their shortcuts are also shown in **Turn controls**.
-- Use **Rotate front** to change the front face by a quarter turn or **Flip cube** to swap top and bottom. Subsequent face turns use the new orientation. The camera stays in place.
+- Press `0` to reset the camera or `8` to toggle the rear view. The viewer controls and the **Turn controls** panel show these actions.
+- Press `7` for **Rotate front** or `9` for **Flip cube**. Subsequent face turns use the new orientation, and the camera stays in place. The three most recent moves appear in the viewer.
 - Open **Keyboard settings**, select a keycap, and press a new shortcut. Use **Save** to apply changes or **Cancel** to keep the last saved shortcuts. **Restore defaults** loads the defaults for review before saving.
 - The 3×3 position and saved shortcuts persist in the browser for the same site and profile.
 

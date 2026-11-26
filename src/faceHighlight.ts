@@ -21,7 +21,7 @@ function isCubieFoundation(object: Object3D): object is CubieMesh {
 
 export async function addFaceHighlight(player: TwistyPlayer, face: CubeFace): Promise<() => void> {
   const cube = await player.experimentalCurrentThreeJSPuzzleObject();
-  const vantages = await player.experimentalCurrentVantages();
+  const vantages = [...await player.experimentalCurrentVantages()];
 
   const template = cube.children.flatMap((cubie) => cubie.children).find(isCubieFoundation);
   if (!template) throw new Error('The 3×3 foundation geometry is unavailable.');
@@ -78,6 +78,8 @@ export async function addFaceHighlight(player: TwistyPlayer, face: CubeFace): Pr
     cube.remove(shell, ...rails);
     glow.dispose();
     edge.dispose();
-    render();
+    for (const vantage of vantages) {
+      void vantage.render().catch(() => vantage.scheduleRender());
+    }
   };
 }
