@@ -1,6 +1,6 @@
 # GitHub Pages deployment guide
 
-Use this guide after the local gameplay and puzzle switching checks pass. The steps assume the planned Vite setup and a separate GitHub project repository. The present TypeScript starter does not yet provide the Vite preview command or a deployable site.
+Use this guide after the local gameplay and puzzle switching checks pass. The Cube Lab repository uses Vite to build and preview the static site.
 
 ## Prepare the production build
 

@@ -4,8 +4,6 @@ Record meaningful changes and decisions after each work session. Add issue, PR, 
 
 ## Next tasks
 
-- [ ] Convert the existing TypeScript starter into a React and Vite browser entry point.
-- [ ] Verify `cubing.js` integration with a 3×3, one known turn, its inverse, and a matching tracked position.
 - [ ] Complete the 3×3 controls, scramble, reset, and timer. Run the local MVP checks.
 - [ ] Write the personal 3×3 solve guide. Verify one documented case on a physical cube and in Cube Lab, then link the guide from the project README.
 - [ ] Add puzzle selection and run the switching checks for every exposed puzzle.
@@ -17,38 +15,42 @@ Record meaningful changes and decisions after each work session. Add issue, PR, 
 
 See the [project plan](PROJECT_PLAN.md) for acceptance criteria and the [deployment guide](DEPLOYMENT.md) for publishing steps.
 
-## 2026-11-21 · Project planning
+## Entries
 
-- **Completed** · Documented the MVP, expansion milestones, profile concept, reference sources, and deployment procedure.
-- **Decisions** · Start with one playable 3×3. Use Cube Lab and Think. Turn. Solve. as working copy. Evaluate React, Vite, and `cubing.js` in the first implementation session.
-- **Verification** · Inspected the local TypeScript starter and checked the upstream documentation and project references. Gameplay and deployment checks are pending implementation.
-- **Next** · Render a 3×3 and verify a turn and its inverse before adding the timer.
-
-## 2026-11-21 · Personal solve guide and repository review
-
-- **Completed** · Updated the profile copy and added a milestone for documenting a personally discovered 3×3 move sequence.
-- **Decisions** · Write and verify one example after the playable 3×3, then move on to puzzle selection. Keep the guide with the app and project docs.
-- **Verification** · Confirmed that local Git is initialized and that the first commit and remote are pending. Identified WebStorm settings among the files to review before sharing.
-
-## 2026-11-21 · Mobile tilt release planning
-
-- **Completed** · Added the post-launch tilt milestone, mode behavior, and real-device release checks.
-- **Decisions** · Target the second Pages release for 3×3 tilt controls. Start with camera rotation and ship face turns when their gesture and timer behavior are verified.
-- **Verification** · Real-device checks are pending implementation.
-
-## 2026-11-21 · Optional webcam controls
-
-- **Completed** · Added an optional post-tilt milestone for desktop webcam controls.
-- **Decisions** · Use browser-based hand tracking, start with a single camera gesture, and evaluate face turns after the prototype.
-- **Verification** · Webcam checks are pending implementation.
-
-## Entry template
-
-```markdown
-## YYYY-MM-DD · Session title
-
-- **Completed** · What changed and any issue, PR, or commit link.
-- **Decisions** · What was chosen and why.
-- **Verification** · Command or manual check, result, and any pending checks.
-- **Next** · The next task or current blocker.
-```
+1. **Project planning**
+   - Defined the 3×3 MVP, puzzle expansion, profile copy, references, and deployment procedure. Checked the TypeScript starter and upstream references.
+   - date: 2026-11-21
+2. **Personal solve guide and repository review**
+   - Added a solve guide milestone between the MVP and puzzle selection. Reviewed local Git setup and identified WebStorm settings to review before the first push.
+   - date: 2026-11-21
+3. **Mobile tilt release planning**
+   - Targeted the second Pages release for 3×3 tilt controls. Defined the mode behavior and real-device release checks.
+   - date: 2026-11-21
+4. **Optional webcam controls**
+   - Planned desktop hand tracking after the mobile tilt release, starting with one camera gesture.
+   - date: 2026-11-21
+5. **React and Vite setup and 3×3 viewer**
+   - Added the 3×3 prototype and the [Git workflow](GIT_WORKFLOW.md) for [issue #3](https://github.com/Yonduss/cube-lab/issues/3).
+   - Verified a clean `npm ci`, the production build, and mouse orbit, emulated touch orbit, and `R` / `R′` in Chromium on both development and production builds.
+   - date: 2026-11-26
+6. **3×3 viewer review changes**
+   - Added the favicon, system light and dark themes, bottom and rear views, a camera reset, and animated right-face turns.
+   - Updated the Git naming conventions and used `feat/3-render-3x3` for the issue #3 review.
+   - Verified the favicon, theme changes, camera controls, and turns with mouse and emulated touch in Chromium. Checked reduced motion.
+   - date: 2026-11-26
+7. **Theme and face notation review**
+   - Added persistent theme choices, visible turn directions, and an arrow to the front face in the default view.
+   - Verified theme persistence and the front marker with mouse and emulated touch. Recorded customizable keys and camera shortcuts in [issue #4](https://github.com/Yonduss/cube-lab/issues/4).
+   - date: 2026-11-26
+8. **Face arrows and turn preferences**
+   - Placed all six arrows outside the cube silhouettes across the default and opposite angles. Added a face-arrow toggle, brief turn help, and an in-page animation toggle.
+   - Verified the six labels, orbit, hover and tap help, and both animated and instant turns in desktop and touch emulation.
+   - date: 2026-11-26
+9. **Single-cube viewer layout**
+   - Kept all six arrows around a single cube in the default view. Dashed labels mark hidden faces, and the rear preview is controlled separately.
+   - Centered the orbit hint, restored it after three seconds of inactivity, grouped the viewer buttons below it, and moved turn help next to the theme controls.
+   - date: 2026-11-26
+10. **Face arrow states and face highlighting**
+    - Made the face-arrow button show On, Off, or Reset view first. Face letters briefly tint their nine stickers, reveal hidden faces, and lock interaction until the original view returns.
+    - Verified all six faces and the restored puzzle position with mouse, keyboard, and emulated touch.
+    - date: 2026-11-26
