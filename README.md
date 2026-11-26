@@ -2,7 +2,7 @@
 
 Cube Lab is a browser-based playground for twisty puzzles. It gives GitHub profile visitors a way to explore the puzzles that shaped how I approach software engineering.
 
-The first prototype renders a 3×3 cube with camera orbit and two right-face turns. The playable MVP adds the full move controls, scramble, reset, and timing.
+The 3×3 prototype supports camera orbit, all six face turns, and customizable keyboard shortcuts. Scramble, puzzle reset, and solve timing are upcoming MVP features.
 
 ## Run locally
 
@@ -14,6 +14,12 @@ npm run dev
 ```
 
 Open the local URL printed by Vite. To check the production build, run `npm run build` and `npm run preview`.
+
+## Controls
+
+- Press `R`, `L`, `U`, `D`, `F`, or `B` for a clockwise quarter turn. Hold `Shift` with the same letter for the inverse. The **Turn controls** panel includes touch buttons and their current keycaps.
+- Press `0` to reset the camera, `9` to look underneath, and `8` to toggle the rear view. These actions leave the puzzle pattern unchanged.
+- Open **Keyboard settings** to select a shortcut, press a new key, or restore the defaults. Valid changes are saved for the browser.
 
 ## Project documents
 

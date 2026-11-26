@@ -54,3 +54,8 @@ See the [project plan](PROJECT_PLAN.md) for acceptance criteria and the [deploym
     - Made the face-arrow button show On, Off, or Reset view first. Face letters briefly tint their nine stickers, reveal hidden faces, and lock interaction until the original view returns.
     - Verified all six faces and the restored puzzle position with mouse, keyboard, and emulated touch.
     - date: 2026-11-26
+11. **Six-face controls and keyboard settings**
+    - Added face turns and default shortcuts in one commit, then customizable bindings with conflict checks and browser persistence in a separate commit for [issue #4](https://github.com/Yonduss/cube-lab/issues/4).
+    - Spaced the turn help away from its button, replaced changing labels with switches, and used a translucent outline around the selected layer while keeping the camera still.
+    - Verified all six turns and inverses, four fast animated turns, key persistence, conflicting bindings, camera controls, and unchanged sticker colors during layer highlighting in desktop and touch-emulated Chromium.
+    - date: 2026-11-26

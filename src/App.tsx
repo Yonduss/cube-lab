@@ -4,7 +4,7 @@ import { TwistyPlayer } from 'cubing/twisty';
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import type { PointerEvent } from 'react';
 import { addFaceHighlight } from './faceHighlight';
-import { FaceGuide, hiddenFaces } from './FaceGuide';
+import { FaceGuide } from './FaceGuide';
 import { faceNames, findAction, formatShortcut, readBindings, saveBindings, shortcutFromEvent, type Bindings, type CubeFace, type FaceTurn } from './cubeControls';
 import { ThemePicker } from './ThemePicker';
 import { TurnHelp } from './TurnHelp';
@@ -97,18 +97,12 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
     let removeHighlight: (() => void) | undefined;
     // Keep controls usable even if the renderer cannot initialize the highlight.
     let timer = window.setTimeout(() => setHighlightedFace(null), 2500);
-    const reveal = hiddenFaces.has(highlightedFace);
-
     void addFaceHighlight(cube, highlightedFace).then((remove) => {
       if (cancelled) {
         remove();
         return;
       }
       removeHighlight = remove;
-      if (reveal) {
-        cube.cameraLatitude = -defaultView.cameraLatitude;
-        cube.cameraLongitude = defaultView.cameraLongitude + 180;
-      }
       window.clearTimeout(timer);
       timer = window.setTimeout(() => setHighlightedFace(null), highlightDuration);
     }, (error: unknown) => {
@@ -121,10 +115,6 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
       cancelled = true;
       window.clearTimeout(timer);
       removeHighlight?.();
-      if (reveal && removeHighlight) {
-        cube.cameraLatitude = defaultView.cameraLatitude;
-        cube.cameraLongitude = defaultView.cameraLongitude;
-      }
     };
   }, [highlightedFace]);
 
@@ -268,20 +258,16 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
         <div className="view-controls">
           <p className="orbit-hint" data-visible={showOrbitHint && !isHighlighting}>Drag or swipe to orbit.</p>
           <div className="buttons" role="group" aria-label="Viewer controls">
-            <button type="button" disabled={isHighlighting || turning} aria-pressed={animateTurns} onClick={() => setAnimateTurns(!animateTurns)}>
-              Animation: {animateTurns ? 'On' : 'Off'}
-            </button>
+            <ViewerSwitch label="Animation" checked={animateTurns} disabled={isHighlighting || turning} onToggle={() => setAnimateTurns(!animateTurns)} />
             <button type="button" disabled={isHighlighting} title={formatShortcut(bindings.resetView)} onClick={resetView}>Reset view</button>
             <button type="button" disabled={isHighlighting} title={formatShortcut(bindings.viewBottom)} onClick={viewBottom}>View bottom</button>
             <button type="button" disabled={isHighlighting} title={formatShortcut(bindings.backView)} onClick={toggleBackView} aria-pressed={showBack}>Back view</button>
-            <button
-              type="button"
+            <ViewerSwitch
+              label="Face arrows"
+              checked={showGuide}
               disabled={!atDefaultView || isHighlighting}
-              onClick={() => setShowLabels(!showLabels)}
-              aria-pressed={showGuide}
-            >
-              {atDefaultView ? `Face arrows: ${showLabels ? 'On' : 'Off'}` : 'Face arrows: Reset view first'}
-            </button>
+              onToggle={() => setShowLabels(!showLabels)}
+            />
           </div>
         </div>
       </section>
@@ -295,5 +281,18 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
         onTurn={turn}
       />
     </main>
+  );
+}
+
+function ViewerSwitch({ label, checked, disabled, onToggle }: {
+  label: string;
+  checked: boolean;
+  disabled: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button className="viewer-switch" type="button" role="switch" aria-checked={checked} disabled={disabled} onClick={onToggle}>
+      {label}<span className="switch-track" aria-hidden="true" />
+    </button>
   );
 }

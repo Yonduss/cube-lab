@@ -1,5 +1,5 @@
 import type { TwistyPlayer } from 'cubing/twisty';
-import type { BufferGeometry, Mesh, MeshBasicMaterial, Object3D } from 'three';
+import type { BoxGeometry, Mesh, MeshBasicMaterial, Object3D } from 'three';
 import type { CubeFace } from './cubeControls';
 
 const directions = {
@@ -11,38 +11,58 @@ const directions = {
   D: ['y', -1],
 } as const;
 
-type Sticker = Mesh<BufferGeometry, MeshBasicMaterial>;
+const axes = ['x', 'y', 'z'] as const;
+type CubieMesh = Mesh<BoxGeometry, MeshBasicMaterial>;
 
-function isSticker(object: Object3D): object is Sticker {
-  const mesh = object as Sticker;
-  return mesh.isMesh && mesh.geometry.type === 'BufferGeometry'
-    && mesh.material.isMeshBasicMaterial && !mesh.material.transparent;
+function isCubieFoundation(object: Object3D): object is CubieMesh {
+  const mesh = object as CubieMesh;
+  return mesh.isMesh && mesh.geometry.type === 'BoxGeometry' && mesh.material.isMeshBasicMaterial;
 }
 
 export async function addFaceHighlight(player: TwistyPlayer, face: CubeFace): Promise<() => void> {
   const cube = await player.experimentalCurrentThreeJSPuzzleObject();
   const vantages = await player.experimentalCurrentVantages();
 
+  const template = cube.children.flatMap((cubie) => cubie.children).find(isCubieFoundation);
+  if (!template) throw new Error('The 3×3 foundation geometry is unavailable.');
+
+  // Cube3D uses unit cubies. The selected layer is a 3 × 3 × 1 box centered one unit from the origin.
   const [axis, sign] = directions[face];
-  const stickers: Sticker[] = [];
-  const position = cube.position.clone();
-  cube.updateWorldMatrix(true, true);
-  cube.traverse((object) => {
-    if (!isSticker(object)) return;
+  const center = cube.position.clone().set(0, 0, 0);
+  center[axis] = sign;
+  const span = cube.scale.clone().set(3.07, 3.07, 3.07);
+  span[axis] = 1.07;
 
-    // Cube3D's outer stickers lie just beyond 1.5 local units on their face axis.
-    cube.worldToLocal(object.getWorldPosition(position));
-    if (Math.abs(position[axis] * sign - 1.503) < 0.01) stickers.push(object);
-  });
+  const glow = template.material.clone();
+  glow.color.setHex(0xffeab0);
+  glow.transparent = true;
+  glow.opacity = 0.12;
+  glow.depthWrite = false;
+  const edge = glow.clone();
+  edge.opacity = 0.54;
 
-  if (stickers.length !== 9) throw new Error(`Expected nine stickers for face ${face}.`);
+  const shell = template.clone(false);
+  shell.name = 'face-layer-highlight';
+  shell.material = glow;
+  shell.position.copy(center);
+  shell.scale.copy(span);
+  shell.renderOrder = 2;
+  cube.add(shell);
 
-  const materials = stickers.map((sticker) => {
-    const original = sticker.material;
-    const highlighted = original.clone();
-    highlighted.color.lerp(original.color.clone().setHex(0xffee9a), 0.85);
-    sticker.material = highlighted;
-    return { sticker, original, highlighted };
+  const rails = axes.flatMap((along) => {
+    const [across, depth] = axes.filter((other) => other !== along);
+    return [-1, 1].flatMap((side) => [-1, 1].map((level) => {
+      const rail = template.clone(false);
+      rail.material = edge;
+      rail.position.copy(center);
+      rail.position[across] += side * span[across] / 2;
+      rail.position[depth] += level * span[depth] / 2;
+      rail.scale.set(0.023, 0.023, 0.023);
+      rail.scale[along] = span[along];
+      rail.renderOrder = 3;
+      cube.add(rail);
+      return rail;
+    }));
   });
 
   const render = () => {
@@ -51,10 +71,9 @@ export async function addFaceHighlight(player: TwistyPlayer, face: CubeFace): Pr
   render();
 
   return () => {
-    for (const { sticker, original, highlighted } of materials) {
-      if (sticker.material === highlighted) sticker.material = original;
-      highlighted.dispose();
-    }
+    cube.remove(shell, ...rails);
+    glow.dispose();
+    edge.dispose();
     render();
   };
 }

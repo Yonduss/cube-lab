@@ -116,14 +116,6 @@ h2 {
   pointer-events: none;
 }
 
-.face-guide[data-peeking='true'] {
-  opacity: 0;
-}
-
-.face-guide[data-peeking='true'] button {
-  pointer-events: none;
-}
-
 .face-marker {
   position: absolute;
   display: flex;
@@ -202,7 +194,7 @@ h2 {
 .turn-help-content {
   position: absolute;
   z-index: 1;
-  top: calc(100% - 1px);
+  top: calc(100% + 0.5rem);
   right: 0;
   width: min(15rem, 70vw);
   padding: 0.75rem;
@@ -212,6 +204,26 @@ h2 {
   box-shadow: 0 0.5rem 1.25rem #0003;
   font-size: 0.875rem;
   line-height: 1.5;
+}
+
+.turn-help-content::before {
+  content: '';
+  position: absolute;
+  inset: -0.55rem 0 auto;
+  height: 0.55rem;
+}
+
+.turn-help-content::after {
+  content: '';
+  position: absolute;
+  top: -0.29rem;
+  right: 1.5rem;
+  width: 0.5rem;
+  height: 0.5rem;
+  transform: rotate(45deg);
+  border-top: 1px solid var(--button-border);
+  border-left: 1px solid var(--button-border);
+  background: var(--panel);
 }
 
 .view-controls {
@@ -224,6 +236,41 @@ h2 {
 
 .view-controls .buttons {
   justify-content: center;
+}
+
+.viewer-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.switch-track {
+  position: relative;
+  width: 1.875rem;
+  height: 1rem;
+  border: 1px solid var(--button-border);
+  border-radius: 999px;
+  background: var(--panel);
+}
+
+.switch-track::after {
+  content: '';
+  position: absolute;
+  top: 0.125rem;
+  left: 0.125rem;
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 50%;
+  background: var(--muted);
+}
+
+.viewer-switch[aria-checked='true'] .switch-track {
+  border-color: var(--focus);
+}
+
+.viewer-switch[aria-checked='true'] .switch-track::after {
+  transform: translateX(0.875rem);
+  background: var(--focus);
 }
 
 .orbit-hint {
