@@ -48,6 +48,13 @@ h1, h2, p { margin: 0; }
   margin-block-end: 1.25rem;
 }
 
+.header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
 h1 {
   font-size: clamp(2rem, 5vw, 3rem);
   letter-spacing: -0.045em;
@@ -105,14 +112,8 @@ h2 {
 .face-guide {
   position: absolute;
   inset: 0;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  --guide-side: max(0.25rem, calc(50% - min(49cqw, 50cqh)));
   pointer-events: none;
-}
-
-.face-guide-angle {
-  position: relative;
-  container-type: size;
 }
 
 .face-marker {
@@ -136,30 +137,41 @@ h2 {
   background: var(--panel);
 }
 
-.face-marker-left {
-  top: calc(50% + min(10cqw, 10cqh));
-  left: max(0.25rem, calc(50% - min(45cqw, 36cqh)));
+.face-marker .face-marker-hidden {
+  border-style: dashed;
+  color: var(--muted);
 }
 
-.face-guide-opposite .face-marker-left {
-  top: calc(50% - min(7cqw, 7cqh));
+.face-marker-f,
+.face-marker-l {
+  left: var(--guide-side);
 }
 
-.face-marker-right {
-  top: calc(50% + min(6cqw, 6cqh));
-  right: max(0.25rem, calc(50% - min(45cqw, 36cqh)));
+.face-marker-r,
+.face-marker-b {
+  right: var(--guide-side);
   flex-direction: row-reverse;
 }
 
-.face-marker-above {
-  top: max(0.25rem, calc(50% - 46cqw));
-  left: 54%;
+.face-marker-f,
+.face-marker-r {
+  top: calc(50% + min(9cqw, 9cqh));
+}
+
+.face-marker-l,
+.face-marker-b {
+  top: calc(50% - min(29cqw, 29cqh));
+}
+
+.face-marker-u {
+  top: 0.25rem;
+  left: 53%;
   flex-direction: column;
 }
 
-.face-marker-below {
-  bottom: max(0.25rem, calc(50% - 46cqw));
-  left: 43%;
+.face-marker-d {
+  bottom: 0.25rem;
+  left: 41%;
   flex-direction: column-reverse;
 }
 
@@ -170,7 +182,7 @@ h2 {
 .turn-help-content {
   position: absolute;
   z-index: 1;
-  bottom: calc(100% - 1px);
+  top: calc(100% - 1px);
   right: 0;
   width: min(15rem, 70vw);
   padding: 0.75rem;
@@ -183,13 +195,23 @@ h2 {
 }
 
 .view-controls {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
+  display: grid;
+  justify-items: center;
   gap: 0.75rem;
   padding: 0 1.25rem 1rem;
   color: var(--muted);
+}
+
+.view-controls .buttons {
+  justify-content: center;
+}
+
+.orbit-hint {
+  text-align: center;
+}
+
+.orbit-hint[data-visible='false'] {
+  visibility: hidden;
 }
 
 .controls {
@@ -235,9 +257,8 @@ h2 {
 }
 
 @media (max-width: 40rem) {
-  .turn-help-content {
-    left: 0;
-    right: auto;
+  .header-actions {
+    width: 100%;
   }
 }
 

@@ -10,6 +10,7 @@ import { TurnHelp } from './TurnHelp';
 type RightTurn = 'R' | "R'";
 
 const defaultView = { cameraLatitude: 35, cameraLongitude: 30, cameraDistance: 6 };
+const orbitHintDelay = 3000;
 
 export function App({ solvedPattern }: { solvedPattern: KPattern }) {
   const viewer = useRef<HTMLDivElement>(null);
@@ -17,11 +18,13 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
   const camera = useRef({ latitude: defaultView.cameraLatitude, longitude: defaultView.cameraLongitude });
   const drag = useRef<{ id: number; x: number; y: number } | null>(null);
   const pendingMove = useRef<RightTurn | null>(null);
+  const orbitHintTimer = useRef<number | undefined>(undefined);
   const [algorithm, setAlgorithm] = useState(() => new Alg());
   const [turning, setTurning] = useState(false);
   const [showBack, setShowBack] = useState(false);
   const [showLabels, setShowLabels] = useState(true);
   const [atDefaultView, setAtDefaultView] = useState(true);
+  const [showOrbitHint, setShowOrbitHint] = useState(true);
   const [animateTurns, setAnimateTurns] = useState(
     () => !window.matchMedia('(prefers-reduced-motion: reduce)').matches,
   );
@@ -62,6 +65,7 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
     catchUpMove.addFreshListener(onAnimationChange);
 
     return () => {
+      window.clearTimeout(orbitHintTimer.current);
       catchUpMove.removeFreshListener(onAnimationChange);
       cube.remove();
       player.current = null;
@@ -71,13 +75,19 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
   useEffect(() => {
     const cube = player.current;
     if (!cube) return;
-    cube.backView = showGuide ? 'side-by-side' : showBack ? 'top-right' : 'none';
-    cube.cameraDistance = showGuide ? 8.5 : defaultView.cameraDistance;
-  }, [showGuide, showBack]);
+    cube.backView = showBack ? 'top-right' : 'none';
+  }, [showBack]);
+
+  function noteMovement() {
+    setShowOrbitHint(false);
+    window.clearTimeout(orbitHintTimer.current);
+    orbitHintTimer.current = window.setTimeout(() => setShowOrbitHint(true), orbitHintDelay);
+  }
 
   function turn(move: RightTurn) {
     const cube = player.current;
     if (!cube || pendingMove.current) return;
+    noteMovement();
 
     if (!animateTurns) {
       const next = algorithm.concat(move);
@@ -94,6 +104,7 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
   function setView(latitude: number, longitude: number) {
     const cube = player.current;
     if (!cube) return;
+    noteMovement();
     camera.current = { latitude, longitude };
     cube.cameraLatitude = latitude;
     cube.cameraLongitude = longitude;
@@ -126,7 +137,10 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
     <main className="playground">
       <header className="page-header">
         <h1>Cube Lab</h1>
-        <ThemePicker />
+        <div className="header-actions">
+          <ThemePicker />
+          <TurnHelp />
+        </div>
       </header>
 
       <section className="stage" aria-labelledby="puzzle-title">
@@ -147,13 +161,14 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
           {showGuide && <FaceGuide />}
         </div>
         <div className="view-controls">
-          <p>Drag or swipe to orbit.</p>
-          <div className="buttons" role="group" aria-label="Camera controls">
+          <p className="orbit-hint" data-visible={showOrbitHint}>Drag or swipe to orbit.</p>
+          <div className="buttons" role="group" aria-label="Viewer controls">
+            <button type="button" aria-pressed={animateTurns} onClick={() => setAnimateTurns(!animateTurns)}>
+              Animation: {animateTurns ? 'On' : 'Off'}
+            </button>
             <button type="button" onClick={() => setView(defaultView.cameraLatitude, defaultView.cameraLongitude)}>Reset view</button>
             <button type="button" onClick={() => setView(-80, camera.current.longitude)}>View bottom</button>
-            <button type="button" onClick={() => setShowBack(!showBack)} aria-pressed={showBack}>
-              {showGuide ? 'Keep back view' : 'Back view'}
-            </button>
+            <button type="button" onClick={() => setShowBack(!showBack)} aria-pressed={showBack}>Back view</button>
             <button type="button" onClick={() => setShowLabels(!showLabels)} aria-pressed={showLabels}>
               Face arrows
             </button>
@@ -169,12 +184,6 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
           </button>
           <button className="turn-button" type="button" disabled={turning} onClick={() => turn("R'")} aria-label="R prime, counterclockwise">
             R′
-          </button>
-        </div>
-        <div className="buttons">
-          <TurnHelp />
-          <button type="button" aria-pressed={animateTurns} onClick={() => setAnimateTurns(!animateTurns)}>
-            Animation: {animateTurns ? 'On' : 'Off'}
           </button>
         </div>
       </section>

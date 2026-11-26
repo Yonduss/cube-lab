@@ -27,6 +27,7 @@ export function TurnHelp() {
       <div className="turn-help-content" id="turn-guide" hidden={!open}>
         <p>Look straight at the right face to read the turn direction.</p>
         <p><strong>R</strong> turns it clockwise. <strong>R′</strong> turns it counterclockwise.</p>
+        <p>Dashed face labels point to sides hidden in the default view.</p>
       </div>
     </div>
   );

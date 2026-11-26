@@ -46,3 +46,7 @@ See the [project plan](PROJECT_PLAN.md) for acceptance criteria and the [deploym
    - Placed all six arrows outside the cube silhouettes across the default and opposite angles. Added a face-arrow toggle, brief turn help, and an in-page animation toggle.
    - Verified the six labels, orbit, hover and tap help, and both animated and instant turns in desktop and touch emulation.
    - date: 2026-11-26
+9. **Single-cube viewer layout**
+   - Kept all six arrows around a single cube in the default view. Dashed labels mark hidden faces, and the rear preview is controlled separately.
+   - Centered the orbit hint, restored it after three seconds of inactivity, grouped the viewer buttons below it, and moved turn help next to the theme controls.
+   - date: 2026-11-26
