@@ -50,3 +50,7 @@ See the [project plan](PROJECT_PLAN.md) for acceptance criteria and the [deploym
    - Kept all six arrows around a single cube in the default view. Dashed labels mark hidden faces, and the rear preview is controlled separately.
    - Centered the orbit hint, restored it after three seconds of inactivity, grouped the viewer buttons below it, and moved turn help next to the theme controls.
    - date: 2026-11-26
+10. **Face arrow states and face highlighting**
+    - Made the face-arrow button show On, Off, or Reset view first. Face letters briefly tint their nine stickers, reveal hidden faces, and lock interaction until the original view returns.
+    - Verified all six faces and the restored puzzle position with mouse, keyboard, and emulated touch.
+    - date: 2026-11-26

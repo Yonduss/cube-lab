@@ -116,6 +116,14 @@ h2 {
   pointer-events: none;
 }
 
+.face-guide[data-peeking='true'] {
+  opacity: 0;
+}
+
+.face-guide[data-peeking='true'] button {
+  pointer-events: none;
+}
+
 .face-marker {
   position: absolute;
   display: flex;
@@ -127,14 +135,26 @@ h2 {
   line-height: 1;
 }
 
-.face-marker abbr {
+.face-marker button {
   display: grid;
   place-items: center;
-  width: 1.25rem;
-  height: 1.25rem;
+  min-width: 1.5rem;
+  min-height: 1.5rem;
+  padding: 0;
   border: 1px solid var(--button-border);
   border-radius: 0.375rem;
   background: var(--panel);
+  pointer-events: auto;
+}
+
+.face-marker button[aria-disabled='true'] {
+  cursor: wait;
+}
+
+.face-marker button[data-active='true'] {
+  border-color: #ffe88d;
+  background: #ffe88d;
+  color: #27303a;
 }
 
 .face-marker .face-marker-hidden {
@@ -281,7 +301,7 @@ button[aria-pressed='true'] {
 
 button:disabled {
   opacity: 0.7;
-  cursor: wait;
+  cursor: not-allowed;
 }
 
 button:focus-visible {

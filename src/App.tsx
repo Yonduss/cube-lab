@@ -3,7 +3,8 @@ import type { KPattern } from 'cubing/kpuzzle';
 import { TwistyPlayer } from 'cubing/twisty';
 import { useEffect, useRef, useState } from 'react';
 import type { PointerEvent } from 'react';
-import { FaceGuide } from './FaceGuide';
+import { addFaceHighlight, type CubeFace } from './faceHighlight';
+import { FaceGuide, faceNames, hiddenFaces } from './FaceGuide';
 import { ThemePicker } from './ThemePicker';
 import { TurnHelp } from './TurnHelp';
 
@@ -11,6 +12,7 @@ type RightTurn = 'R' | "R'";
 
 const defaultView = { cameraLatitude: 35, cameraLongitude: 30, cameraDistance: 6 };
 const orbitHintDelay = 3000;
+const highlightDuration = 750;
 
 export function App({ solvedPattern }: { solvedPattern: KPattern }) {
   const viewer = useRef<HTMLDivElement>(null);
@@ -23,12 +25,14 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
   const [turning, setTurning] = useState(false);
   const [showBack, setShowBack] = useState(false);
   const [showLabels, setShowLabels] = useState(true);
+  const [highlightedFace, setHighlightedFace] = useState<CubeFace | null>(null);
   const [atDefaultView, setAtDefaultView] = useState(true);
   const [showOrbitHint, setShowOrbitHint] = useState(true);
   const [animateTurns, setAnimateTurns] = useState(
     () => !window.matchMedia('(prefers-reduced-motion: reduce)').matches,
   );
   const showGuide = atDefaultView && showLabels;
+  const isHighlighting = highlightedFace !== null;
   const isSolved = solvedPattern.applyAlg(algorithm).isIdentical(solvedPattern);
 
   useEffect(() => {
@@ -78,6 +82,45 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
     cube.backView = showBack ? 'top-right' : 'none';
   }, [showBack]);
 
+  useEffect(() => {
+    const cube = player.current;
+    if (!cube || !highlightedFace) return;
+
+    let cancelled = false;
+    let removeHighlight: (() => void) | undefined;
+    // Keep controls usable even if the renderer cannot initialize the highlight.
+    let timer = window.setTimeout(() => setHighlightedFace(null), 2500);
+    const reveal = hiddenFaces.has(highlightedFace);
+
+    void addFaceHighlight(cube, highlightedFace).then((remove) => {
+      if (cancelled) {
+        remove();
+        return;
+      }
+      removeHighlight = remove;
+      if (reveal) {
+        cube.cameraLatitude = -defaultView.cameraLatitude;
+        cube.cameraLongitude = defaultView.cameraLongitude + 180;
+      }
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => setHighlightedFace(null), highlightDuration);
+    }, (error: unknown) => {
+      if (cancelled) return;
+      console.error('Could not highlight the face.', error);
+      setHighlightedFace(null);
+    });
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+      removeHighlight?.();
+      if (reveal && removeHighlight) {
+        cube.cameraLatitude = defaultView.cameraLatitude;
+        cube.cameraLongitude = defaultView.cameraLongitude;
+      }
+    };
+  }, [highlightedFace]);
+
   function noteMovement() {
     setShowOrbitHint(false);
     window.clearTimeout(orbitHintTimer.current);
@@ -86,7 +129,7 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
 
   function turn(move: RightTurn) {
     const cube = player.current;
-    if (!cube || pendingMove.current) return;
+    if (!cube || pendingMove.current || highlightedFace) return;
     noteMovement();
 
     if (!animateTurns) {
@@ -103,7 +146,7 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
 
   function setView(latitude: number, longitude: number) {
     const cube = player.current;
-    if (!cube) return;
+    if (!cube || highlightedFace) return;
     noteMovement();
     camera.current = { latitude, longitude };
     cube.cameraLatitude = latitude;
@@ -112,14 +155,14 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
   }
 
   function startOrbit(event: PointerEvent<HTMLDivElement>) {
-    if (event.button !== 0 || drag.current) return;
+    if (event.button !== 0 || drag.current || highlightedFace) return;
     event.currentTarget.setPointerCapture(event.pointerId);
     drag.current = { id: event.pointerId, x: event.clientX, y: event.clientY };
   }
 
   function orbitView(event: PointerEvent<HTMLDivElement>) {
     const start = drag.current;
-    if (!start || start.id !== event.pointerId) return;
+    if (!start || start.id !== event.pointerId || highlightedFace) return;
 
     const size = Math.min(event.currentTarget.clientWidth, event.currentTarget.clientHeight);
     const degreesPerPixel = 180 / size;
@@ -133,11 +176,19 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
     if (drag.current?.id === event.pointerId) drag.current = null;
   }
 
+  function highlightFace(face: CubeFace) {
+    if (!turning && !highlightedFace && !drag.current) setHighlightedFace(face);
+  }
+
+  const positionLabel = highlightedFace
+    ? `Highlighting ${faceNames[highlightedFace]}`
+    : turning ? 'Turning…' : isSolved ? 'Solved' : 'Unsolved';
+
   return (
     <main className="playground">
       <header className="page-header">
         <h1>Cube Lab</h1>
-        <div className="header-actions">
+        <div className="header-actions" inert={isHighlighting}>
           <ThemePicker />
           <TurnHelp />
         </div>
@@ -147,7 +198,7 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
         <div className="stage-header">
           <h2 id="puzzle-title">3 × 3 × 3</h2>
           <p className="position" role="status">
-            {turning ? 'Turning…' : isSolved ? 'Solved' : 'Unsolved'}
+            {positionLabel}
           </p>
         </div>
         <div className="cube-stage">
@@ -158,19 +209,26 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
             onPointerMove={orbitView}
             onLostPointerCapture={endOrbit}
           />
-          {showGuide && <FaceGuide />}
+          {showGuide && (
+            <FaceGuide activeFace={highlightedFace} disabled={turning || isHighlighting} onHighlight={highlightFace} />
+          )}
         </div>
         <div className="view-controls">
-          <p className="orbit-hint" data-visible={showOrbitHint}>Drag or swipe to orbit.</p>
+          <p className="orbit-hint" data-visible={showOrbitHint && !isHighlighting}>Drag or swipe to orbit.</p>
           <div className="buttons" role="group" aria-label="Viewer controls">
-            <button type="button" aria-pressed={animateTurns} onClick={() => setAnimateTurns(!animateTurns)}>
+            <button type="button" disabled={isHighlighting} aria-pressed={animateTurns} onClick={() => setAnimateTurns(!animateTurns)}>
               Animation: {animateTurns ? 'On' : 'Off'}
             </button>
-            <button type="button" onClick={() => setView(defaultView.cameraLatitude, defaultView.cameraLongitude)}>Reset view</button>
-            <button type="button" onClick={() => setView(-80, camera.current.longitude)}>View bottom</button>
-            <button type="button" onClick={() => setShowBack(!showBack)} aria-pressed={showBack}>Back view</button>
-            <button type="button" onClick={() => setShowLabels(!showLabels)} aria-pressed={showLabels}>
-              Face arrows
+            <button type="button" disabled={isHighlighting} onClick={() => setView(defaultView.cameraLatitude, defaultView.cameraLongitude)}>Reset view</button>
+            <button type="button" disabled={isHighlighting} onClick={() => setView(-80, camera.current.longitude)}>View bottom</button>
+            <button type="button" disabled={isHighlighting} onClick={() => setShowBack(!showBack)} aria-pressed={showBack}>Back view</button>
+            <button
+              type="button"
+              disabled={!atDefaultView || isHighlighting}
+              onClick={() => setShowLabels(!showLabels)}
+              aria-pressed={showGuide}
+            >
+              {atDefaultView ? `Face arrows: ${showLabels ? 'On' : 'Off'}` : 'Face arrows: Reset view first'}
             </button>
           </div>
         </div>
@@ -179,10 +237,10 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
       <section className="controls" aria-labelledby="controls-title">
         <h2 id="controls-title">Right face</h2>
         <div className="buttons" role="group" aria-label="Right-face turns">
-          <button className="turn-button" type="button" disabled={turning} onClick={() => turn('R')} aria-label="R, clockwise">
+          <button className="turn-button" type="button" disabled={turning || isHighlighting} onClick={() => turn('R')} aria-label="R, clockwise">
             R
           </button>
-          <button className="turn-button" type="button" disabled={turning} onClick={() => turn("R'")} aria-label="R prime, counterclockwise">
+          <button className="turn-button" type="button" disabled={turning || isHighlighting} onClick={() => turn("R'")} aria-label="R prime, counterclockwise">
             R′
           </button>
         </div>
