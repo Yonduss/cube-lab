@@ -33,3 +33,8 @@ See the [project plan](PROJECT_PLAN.md) for acceptance criteria and the [deploym
    - Added the 3×3 prototype and the [Git workflow](GIT_WORKFLOW.md) for [issue #3](https://github.com/Yonduss/cube-lab/issues/3).
    - Verified a clean `npm ci`, the production build, and mouse orbit, emulated touch orbit, and `R` / `R′` in Chromium on both development and production builds.
    - date: 2026-11-26
+6. **3×3 viewer review changes**
+   - Added the favicon, system light and dark themes, bottom and rear views, a camera reset, and animated right-face turns.
+   - Updated the Git naming conventions and used `feat/3-render-3x3` for the issue #3 review.
+   - Verified the favicon, theme changes, camera controls, and turns with mouse and emulated touch in Chromium. Checked reduced motion.
+   - date: 2026-11-26
