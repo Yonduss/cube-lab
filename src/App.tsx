@@ -3,6 +3,7 @@ import type { KPattern } from 'cubing/kpuzzle';
 import { TwistyPlayer } from 'cubing/twisty';
 import { useEffect, useRef, useState } from 'react';
 import type { PointerEvent } from 'react';
+import { ThemePicker } from './ThemePicker';
 
 type RightTurn = 'R' | "R'";
 
@@ -17,6 +18,7 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
   const [algorithm, setAlgorithm] = useState(() => new Alg());
   const [turning, setTurning] = useState(false);
   const [showBack, setShowBack] = useState(false);
+  const [atDefaultView, setAtDefaultView] = useState(true);
   const isSolved = solvedPattern.applyAlg(algorithm).isIdentical(solvedPattern);
 
   useEffect(() => {
@@ -81,6 +83,7 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
     camera.current = { latitude, longitude };
     cube.cameraLatitude = latitude;
     cube.cameraLongitude = longitude;
+    setAtDefaultView(latitude === defaultView.cameraLatitude && longitude === defaultView.cameraLongitude);
   }
 
   function startOrbit(event: PointerEvent<HTMLDivElement>) {
@@ -114,7 +117,10 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
 
   return (
     <main className="playground">
-      <h1>Cube Lab</h1>
+      <header className="page-header">
+        <h1>Cube Lab</h1>
+        <ThemePicker />
+      </header>
 
       <section className="stage" aria-labelledby="puzzle-title">
         <div className="stage-header">
@@ -123,13 +129,20 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
             {turning ? 'Turning…' : isSolved ? 'Solved' : 'Unsolved'}
           </p>
         </div>
-        <div
-          className="cube-viewer"
-          ref={viewer}
-          onPointerDown={startOrbit}
-          onPointerMove={orbitView}
-          onLostPointerCapture={endOrbit}
-        />
+        <div className="cube-stage">
+          <div
+            className="cube-viewer"
+            ref={viewer}
+            onPointerDown={startOrbit}
+            onPointerMove={orbitView}
+            onLostPointerCapture={endOrbit}
+          />
+          {atDefaultView && (
+            <div className="front-marker">
+              <span>Front (F)</span>
+            </div>
+          )}
+        </div>
         <div className="view-controls">
           <p>Drag or swipe to orbit.</p>
           <div className="buttons" role="group" aria-label="Camera controls">
@@ -143,11 +156,15 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
       <section className="controls" aria-labelledby="controls-title">
         <div>
           <h2 id="controls-title">Right face</h2>
-          <p>R and R′ turn the same face from any camera angle.</p>
+          <p>Turn directions are shown as seen from outside the right face.</p>
         </div>
         <div className="buttons">
-          <button type="button" disabled={turning} onClick={() => turn('R')} aria-label="R, clockwise">R</button>
-          <button type="button" disabled={turning} onClick={() => turn("R'")} aria-label="R prime, counterclockwise">R′</button>
+          <button className="turn-button" type="button" disabled={turning} onClick={() => turn('R')} aria-label="R, clockwise">
+            <strong>R</strong> Clockwise
+          </button>
+          <button className="turn-button" type="button" disabled={turning} onClick={() => turn("R'")} aria-label="R prime, counterclockwise">
+            <strong>R′</strong> Counterclockwise
+          </button>
         </div>
       </section>
     </main>

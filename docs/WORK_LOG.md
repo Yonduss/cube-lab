@@ -38,3 +38,7 @@ See the [project plan](PROJECT_PLAN.md) for acceptance criteria and the [deploym
    - Updated the Git naming conventions and used `feat/3-render-3x3` for the issue #3 review.
    - Verified the favicon, theme changes, camera controls, and turns with mouse and emulated touch in Chromium. Checked reduced motion.
    - date: 2026-11-26
+7. **Theme and face notation review**
+   - Added persistent theme choices, visible turn directions, and an arrow to the front face in the default view.
+   - Verified theme persistence and the front marker with mouse and emulated touch. Recorded customizable keys and camera shortcuts in [issue #4](https://github.com/Yonduss/cube-lab/issues/4).
+   - date: 2026-11-26
