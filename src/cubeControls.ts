@@ -29,21 +29,59 @@ export const defaultBindings: Bindings = {
   backView: { key: '8', shift: false },
 };
 
+const actions = Object.keys(defaultBindings) as CubeAction[];
+const bindingStorageKey = 'cube-lab.shortcuts';
+
+function isBindableKey(key: string) {
+  return (key.length === 1 && key !== ' ') || /^Arrow(Up|Down|Left|Right)$/.test(key);
+}
+
 export function shortcutFromEvent(event: KeyboardEvent): Shortcut | null {
   if (event.ctrlKey || event.altKey || event.metaKey || event.isComposing || event.repeat) return null;
 
   const key = event.key.length === 1 ? event.key.toUpperCase() : event.key;
-  if (key === ' ' || (key.length !== 1 && !key.startsWith('Arrow'))) return null;
+  if (!isBindableKey(key)) return null;
 
   return { key, shift: event.shiftKey };
 }
 
 export function findAction(bindings: Bindings, shortcut: Shortcut) {
-  const actions = Object.keys(defaultBindings) as CubeAction[];
   return actions.find((action) => {
     const binding = bindings[action];
     return binding.key === shortcut.key && binding.shift === shortcut.shift;
   });
+}
+
+export function actionLabel(action: CubeAction) {
+  if (action === 'resetView' || action === 'viewBottom' || action === 'backView') return cameraNames[action];
+  return action.replace("'", '′');
+}
+
+export function readBindings(): Bindings {
+  try {
+    const raw = localStorage.getItem(bindingStorageKey);
+    if (!raw) return defaultBindings;
+    const saved: Partial<Bindings> = JSON.parse(raw);
+    const combined = { ...defaultBindings };
+    for (const action of actions) {
+      const binding = saved?.[action];
+      if (binding && typeof binding.key === 'string' && isBindableKey(binding.key) && typeof binding.shift === 'boolean') {
+        combined[action] = binding;
+      }
+    }
+    if (actions.every((action) => findAction(combined, combined[action]) === action)) return combined;
+  } catch {
+    // Keep the default controls if storage is blocked or invalid.
+  }
+  return defaultBindings;
+}
+
+export function saveBindings(bindings: Bindings) {
+  try {
+    localStorage.setItem(bindingStorageKey, JSON.stringify(bindings));
+  } catch {
+    // The current session can still use the new shortcuts.
+  }
 }
 
 export function formatShortcut({ key, shift }: Shortcut) {

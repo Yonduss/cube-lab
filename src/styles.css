@@ -249,6 +249,30 @@ h2 {
   margin-top: 0.875rem;
 }
 
+.control-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.binding-settings {
+  margin-top: 0.625rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.binding-message {
+  min-height: 1.5em;
+  margin-block: 0.25rem;
+  color: var(--ink);
+}
+
+.camera-bindings {
+  margin-top: 0.75rem;
+}
+
 .turn-face {
   min-width: 0;
   padding: 0.75rem;

@@ -5,7 +5,7 @@ import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import type { PointerEvent } from 'react';
 import { addFaceHighlight } from './faceHighlight';
 import { FaceGuide, hiddenFaces } from './FaceGuide';
-import { defaultBindings, faceNames, findAction, shortcutFromEvent, type CubeFace, type FaceTurn } from './cubeControls';
+import { faceNames, findAction, formatShortcut, readBindings, saveBindings, shortcutFromEvent, type Bindings, type CubeFace, type FaceTurn } from './cubeControls';
 import { ThemePicker } from './ThemePicker';
 import { TurnHelp } from './TurnHelp';
 import { TurnControls } from './TurnControls';
@@ -30,6 +30,8 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
   const [highlightedFace, setHighlightedFace] = useState<CubeFace | null>(null);
   const [atDefaultView, setAtDefaultView] = useState(true);
   const [showOrbitHint, setShowOrbitHint] = useState(true);
+  const [bindings, setBindings] = useState(readBindings);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [animateTurns, setAnimateTurns] = useState(
     () => !window.matchMedia('(prefers-reduced-motion: reduce)').matches,
   );
@@ -200,12 +202,12 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
   }
 
   const onShortcut = useEffectEvent((event: KeyboardEvent) => {
-    if (isHighlighting || event.defaultPrevented) return;
+    if (isHighlighting || settingsOpen || event.defaultPrevented) return;
     const target = event.target;
     if (target instanceof HTMLElement && (target.isContentEditable || target.closest('input, textarea, select, [role="textbox"]'))) return;
 
     const shortcut = shortcutFromEvent(event);
-    const action = shortcut && findAction(defaultBindings, shortcut);
+    const action = shortcut && findAction(bindings, shortcut);
     if (!action) return;
     event.preventDefault();
 
@@ -223,6 +225,11 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
 
   function highlightFace(face: CubeFace) {
     if (!turning && !highlightedFace && !drag.current) setHighlightedFace(face);
+  }
+
+  function updateBindings(next: Bindings) {
+    setBindings(next);
+    saveBindings(next);
   }
 
   const positionLabel = highlightedFace
@@ -264,9 +271,9 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
             <button type="button" disabled={isHighlighting || turning} aria-pressed={animateTurns} onClick={() => setAnimateTurns(!animateTurns)}>
               Animation: {animateTurns ? 'On' : 'Off'}
             </button>
-            <button type="button" disabled={isHighlighting} onClick={resetView}>Reset view</button>
-            <button type="button" disabled={isHighlighting} onClick={viewBottom}>View bottom</button>
-            <button type="button" disabled={isHighlighting} onClick={toggleBackView} aria-pressed={showBack}>Back view</button>
+            <button type="button" disabled={isHighlighting} title={formatShortcut(bindings.resetView)} onClick={resetView}>Reset view</button>
+            <button type="button" disabled={isHighlighting} title={formatShortcut(bindings.viewBottom)} onClick={viewBottom}>View bottom</button>
+            <button type="button" disabled={isHighlighting} title={formatShortcut(bindings.backView)} onClick={toggleBackView} aria-pressed={showBack}>Back view</button>
             <button
               type="button"
               disabled={!atDefaultView || isHighlighting}
@@ -279,7 +286,14 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
         </div>
       </section>
 
-      <TurnControls bindings={defaultBindings} disabled={isHighlighting} onTurn={turn} />
+      <TurnControls
+        bindings={bindings}
+        disabled={isHighlighting}
+        settingsOpen={settingsOpen}
+        onSettings={() => setSettingsOpen(!settingsOpen)}
+        onBindings={updateBindings}
+        onTurn={turn}
+      />
     </main>
   );
 }
