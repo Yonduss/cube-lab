@@ -1,7 +1,6 @@
-import type { CubeFace } from './faceHighlight';
+import { faceNames, type CubeFace } from './cubeControls';
 
-export const faceNames = { U: 'Up', F: 'Front', R: 'Right', L: 'Left', B: 'Back', D: 'Down' };
-export const hiddenFaces: ReadonlySet<CubeFace> = new Set(['L', 'B', 'D']);
+const hiddenFaces = new Set<CubeFace>(['L', 'B', 'D']);
 
 export function FaceGuide({ activeFace, disabled, onHighlight }: {
   activeFace: CubeFace | null;
@@ -9,12 +8,7 @@ export function FaceGuide({ activeFace, disabled, onHighlight }: {
   onHighlight: (face: CubeFace) => void;
 }) {
   return (
-    <div
-      className="face-guide"
-      role="group"
-      aria-label="Face directions"
-      data-peeking={activeFace !== null && hiddenFaces.has(activeFace)}
-    >
+    <div className="face-guide" role="group" aria-label="Face directions">
       {faces.map(([letter, arrow]) => (
         <span className={`face-marker face-marker-${letter.toLowerCase()}`} key={letter}>
           <button

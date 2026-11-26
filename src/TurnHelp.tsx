@@ -25,9 +25,8 @@ export function TurnHelp() {
         How to turn?
       </button>
       <div className="turn-help-content" id="turn-guide" hidden={!open}>
-        <p>Look straight at the right face to read the turn direction.</p>
-        <p><strong>R</strong> turns it clockwise. <strong>R′</strong> turns it counterclockwise.</p>
-        <p>Select a face letter to highlight it. Dashed labels briefly show the opposite angle.</p>
+        <p>Look straight at a face to read the turn direction. <strong>R</strong> turns the right face clockwise and <strong>R′</strong> turns it counterclockwise.</p>
+        <p>Select a face letter to highlight its layer.</p>
       </div>
     </div>
   );
