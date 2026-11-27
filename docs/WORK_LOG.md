@@ -78,3 +78,7 @@ See the [project plan](PROJECT_PLAN.md) for acceptance criteria and the [deploym
    - Assigned the four actions the default keys 1–4. Kept the earlier numeric view shortcuts and existing custom assignments.
    - Verified both control locations, the desktop and mobile row layouts, toggle availability after orbiting, and shortcut migration in the `/cube-lab/` preview.
    - date: 2026-11-27
+16. **Simpler cube viewer**
+   - Removed the duplicate buttons below the cube. Kept the orbit hint, face guide, recent moves, and messages in the viewer.
+   - Verified the Turn controls panel, keyboard shortcuts, and position restoration in the production preview with desktop and emulated touch input.
+   - date: 2026-11-27

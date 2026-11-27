@@ -6,8 +6,8 @@ import type { PointerEvent } from 'react';
 import { addFaceHighlight } from './faceHighlight';
 import { FaceGuide } from './FaceGuide';
 import {
-  displayActions, faceNames, findAction, formatShortcut, isUtilityAction, puzzleActions, readBindings,
-  saveBindings, shortcutFromEvent, utilityNames, viewerActions, type Bindings, type Control, type CubeFace, type UtilityAction,
+  faceNames, findAction, isUtilityAction, readBindings, saveBindings, shortcutFromEvent,
+  type Bindings, type Control, type CubeFace, type UtilityAction,
 } from './cubeControls';
 import { generateScramble, readPosition, savePosition, type CubeMove } from './cubePosition';
 import { ThemePicker } from './ThemePicker';
@@ -418,45 +418,9 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
             </ol>
           )}
         </div>
-        <div className="view-controls">
+        <div className="viewer-messages">
           <p className="orbit-hint" data-visible={showOrbitHint && !controlsLocked}>Drag or swipe to orbit.</p>
-          <div className="buttons primary-controls" role="group" aria-label="Puzzle and display controls">
-            {puzzleActions.map((action) => (
-              <button
-                key={action}
-                type="button"
-                className={action === 'scramble' ? 'scramble-button' : undefined}
-                title={formatShortcut(bindings[action])}
-                disabled={controls[action].disabled}
-                onClick={controls[action].run}
-              >
-                {utilityNames[action]}
-              </button>
-            ))}
-            {displayActions.map((action) => (
-              <ViewerSwitch
-                key={action}
-                label={utilityNames[action]}
-                title={formatShortcut(bindings[action])}
-                control={controls[action]}
-              />
-            ))}
-          </div>
           {scrambleError && <p className="scramble-error" role="alert">Could not scramble the cube. Reload the page to try again.</p>}
-          <div className="buttons" role="group" aria-label="View and orientation controls">
-            {viewerActions.map((action) => (
-              <button
-                key={action}
-                type="button"
-                disabled={controls[action].disabled}
-                title={formatShortcut(bindings[action])}
-                onClick={controls[action].run}
-                aria-pressed={controls[action].checked}
-              >
-                {utilityNames[action]}
-              </button>
-            ))}
-          </div>
         </div>
       </section>
 
@@ -470,17 +434,5 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
         controls={controls}
       />
     </main>
-  );
-}
-
-function ViewerSwitch({ label, title, control }: {
-  label: string;
-  title: string;
-  control: Control;
-}) {
-  return (
-    <button className="viewer-switch" type="button" role="switch" title={title} aria-checked={control.checked} disabled={control.disabled} onClick={control.run}>
-      {label}<span className="switch-track" aria-hidden="true" />
-    </button>
   );
 }
