@@ -1,12 +1,15 @@
-import { Move, type Alg } from 'cubing/alg';
+import { Alg, Move } from 'cubing/alg';
 import type { KPattern } from 'cubing/kpuzzle';
 import { setTwistyDebug, TwistyPlayer } from 'cubing/twisty';
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import type { PointerEvent } from 'react';
 import { addFaceHighlight } from './faceHighlight';
 import { FaceGuide } from './FaceGuide';
-import { faceNames, findAction, formatShortcut, isViewerAction, readBindings, saveBindings, shortcutFromEvent, viewerActions, viewerNames, type Bindings, type CubeFace, type ViewerAction } from './cubeControls';
-import { readPosition, savePosition, type CubeMove } from './cubePosition';
+import {
+  faceNames, findAction, isUtilityAction, readBindings, saveBindings, shortcutFromEvent,
+  type Bindings, type Control, type CubeFace, type UtilityAction,
+} from './cubeControls';
+import { generateScramble, readPosition, savePosition, type CubeMove } from './cubePosition';
 import { ThemePicker } from './ThemePicker';
 import { TurnHelp } from './TurnHelp';
 import { TurnControls } from './TurnControls';
@@ -15,6 +18,8 @@ const defaultView = { cameraLatitude: 35, cameraLongitude: 30, cameraDistance: 6
 const orbitHintDelay = 3000;
 const highlightDuration = 2000;
 const turnTimeout = 1200;
+const scrambleTimeout = 15000;
+const solvedOptions = { ignorePuzzleOrientation: true, ignoreCenterOrientation: true };
 
 export function App({ solvedPattern }: { solvedPattern: KPattern }) {
   const viewer = useRef<HTMLDivElement>(null);
@@ -22,6 +27,7 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
   const rearViewRequested = useRef(false);
   const camera = useRef({ latitude: defaultView.cameraLatitude, longitude: defaultView.cameraLongitude });
   const drag = useRef<{ id: number; x: number; y: number } | null>(null);
+  const scrambleRequest = useRef<symbol | null>(null);
   const pendingMove = useRef<CubeMove | null>(null);
   const moveQueue = useRef<CubeMove[]>([]);
   const startAnimatedMove = useRef<((move: CubeMove) => void) | null>(null);
@@ -30,6 +36,9 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
   const orbitHintTimer = useRef<number | undefined>(undefined);
   const moveID = useRef(0);
   const [turning, setTurning] = useState(false);
+  const [orbiting, setOrbiting] = useState(false);
+  const [scrambling, setScrambling] = useState(false);
+  const [scrambleError, setScrambleError] = useState(false);
   const [recentMoves, setRecentMoves] = useState<{ id: number; move: CubeMove }[]>([]);
   const [showBack, setShowBack] = useState(false);
   const [showLabels, setShowLabels] = useState(true);
@@ -43,10 +52,10 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
   );
   const showGuide = atDefaultView && showLabels;
   const isHighlighting = highlightedFace !== null;
-  const isSolved = solvedPattern.applyAlg(algorithm).experimentalIsSolved({
-    ignorePuzzleOrientation: true,
-    ignoreCenterOrientation: true,
-  });
+  const controlsLocked = isHighlighting || scrambling;
+  const puzzleBusy = controlsLocked || turning || orbiting || settingsOpen;
+  const hasPosition = algorithm.experimentalNumChildAlgNodes() > 0;
+  const isSolved = solvedPattern.applyAlg(algorithm).experimentalIsSolved(solvedOptions);
 
   function recordPosition(next: Alg) {
     completedMoves.current = next;
@@ -125,6 +134,7 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
       catchUpMove.removeFreshListener(onAnimationChange);
       startAnimatedMove.current = null;
       rearViewRequested.current = false;
+      scrambleRequest.current = null;
       cube.remove();
       player.current = null;
     };
@@ -205,7 +215,7 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
 
   function turn(move: CubeMove) {
     const cube = player.current;
-    if (!cube || highlightedFace) return;
+    if (!cube || highlightedFace || scrambleRequest.current) return;
     noteMovement();
     const entry = { id: ++moveID.current, move };
     setRecentMoves((recent) => [entry, ...recent].slice(0, 3));
@@ -228,7 +238,7 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
 
   function setView(latitude: number, longitude: number) {
     const cube = player.current;
-    if (!cube || highlightedFace) return;
+    if (!cube || highlightedFace || scrambleRequest.current) return;
     noteMovement();
     camera.current = { latitude, longitude };
     cube.cameraLatitude = latitude;
@@ -237,9 +247,10 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
   }
 
   function startOrbit(event: PointerEvent<HTMLDivElement>) {
-    if (event.button !== 0 || drag.current || highlightedFace) return;
+    if (event.button !== 0 || drag.current || highlightedFace || scrambleRequest.current) return;
     event.currentTarget.setPointerCapture(event.pointerId);
     drag.current = { id: event.pointerId, x: event.clientX, y: event.clientY };
+    setOrbiting(true);
   }
 
   function orbitView(event: PointerEvent<HTMLDivElement>) {
@@ -255,7 +266,9 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
   }
 
   function endOrbit(event: PointerEvent<HTMLDivElement>) {
-    if (drag.current?.id === event.pointerId) drag.current = null;
+    if (drag.current?.id !== event.pointerId) return;
+    drag.current = null;
+    setOrbiting(false);
   }
 
   function resetView() {
@@ -266,12 +279,72 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
     setShowBack((backView) => !backView);
   }
 
-  const viewerCommands: Record<ViewerAction, () => void> = {
-    resetView, backView: toggleBackView, rotateFront: () => turn('y'), flipCube: () => turn('x2'),
+  function canReplacePosition() {
+    return !scrambleRequest.current && !pendingMove.current && !drag.current && !highlightedFace && !settingsOpen;
+  }
+
+  function replacePosition(cube: TwistyPlayer, next: Alg) {
+    moveQueue.current = [];
+    cube.alg = next;
+    cube.timestamp = 'end';
+    setRecentMoves([]);
+    recordPosition(next);
+  }
+
+  async function scramble() {
+    const cube = player.current;
+    if (!cube || !canReplacePosition()) return;
+
+    const request = Symbol();
+    scrambleRequest.current = request;
+    setScrambleError(false);
+    setScrambling(true);
+    let timeout: number | undefined;
+
+    try {
+      const next = await Promise.race([
+        generateScramble(),
+        new Promise<never>((_, reject) => {
+          timeout = window.setTimeout(() => reject(new Error('Scramble generation timed out.')), scrambleTimeout);
+        }),
+      ]);
+      if (scrambleRequest.current !== request) return;
+      if (solvedPattern.applyAlg(next).experimentalIsSolved(solvedOptions)) throw new Error('The scramble did not change the solved position.');
+      replacePosition(cube, next);
+    } catch (error) {
+      if (scrambleRequest.current !== request) return;
+      console.error('Could not scramble the cube.', error);
+      setScrambleError(true);
+    } finally {
+      window.clearTimeout(timeout);
+      if (scrambleRequest.current === request) {
+        scrambleRequest.current = null;
+        setScrambling(false);
+      }
+    }
+  }
+
+  function resetPuzzle() {
+    const cube = player.current;
+    if (!cube || !canReplacePosition() || completedMoves.current.experimentalNumChildAlgNodes() === 0) return;
+
+    setScrambleError(false);
+    replacePosition(cube, new Alg());
+  }
+
+  const controls: Record<UtilityAction, Control> = {
+    scramble: { run: () => { void scramble(); }, disabled: puzzleBusy },
+    resetPuzzle: { run: resetPuzzle, disabled: puzzleBusy || !hasPosition },
+    animation: { run: () => setAnimateTurns((value) => !value), disabled: controlsLocked || turning, checked: animateTurns },
+    faceArrows: { run: () => setShowLabels((value) => !value), disabled: !atDefaultView || controlsLocked, checked: showGuide },
+    resetView: { run: resetView, disabled: controlsLocked },
+    backView: { run: toggleBackView, disabled: controlsLocked, checked: showBack },
+    rotateFront: { run: () => turn('y'), disabled: controlsLocked },
+    flipCube: { run: () => turn('x2'), disabled: controlsLocked },
   };
 
   const onShortcut = useEffectEvent((event: KeyboardEvent) => {
-    if (isHighlighting || settingsOpen || event.defaultPrevented) return;
+    if (controlsLocked || scrambleRequest.current || settingsOpen || event.defaultPrevented) return;
     const target = event.target;
     if (target instanceof HTMLElement && (target.isContentEditable || target.closest('input, textarea, select, [role="textbox"]'))) return;
 
@@ -280,8 +353,10 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
     if (!action) return;
     event.preventDefault();
 
-    if (isViewerAction(action)) viewerCommands[action]();
-    else turn(action);
+    if (isUtilityAction(action)) {
+      const control = controls[action];
+      if (!control.disabled) control.run();
+    } else turn(action);
   });
 
   useEffect(() => {
@@ -291,7 +366,7 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
   }, []);
 
   function highlightFace(face: CubeFace) {
-    if (!turning && !highlightedFace && !drag.current) setHighlightedFace(face);
+    if (!turning && !highlightedFace && !drag.current && !scrambleRequest.current) setHighlightedFace(face);
   }
 
   function updateBindings(next: Bindings) {
@@ -301,7 +376,7 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
 
   const positionLabel = highlightedFace
     ? `Highlighting ${faceNames[highlightedFace]}`
-    : turning ? 'Turning…' : isSolved ? 'Solved' : 'Unsolved';
+    : scrambling ? 'Scrambling…' : turning ? 'Turning…' : isSolved ? 'Solved' : 'Unsolved';
 
   return (
     <main className="playground">
@@ -326,10 +401,12 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
             ref={viewer}
             onPointerDown={startOrbit}
             onPointerMove={orbitView}
+            onPointerUp={endOrbit}
+            onPointerCancel={endOrbit}
             onLostPointerCapture={endOrbit}
           />
           {showGuide && (
-            <FaceGuide activeFace={highlightedFace} disabled={turning || isHighlighting} onHighlight={highlightFace} />
+            <FaceGuide activeFace={highlightedFace} disabled={turning || controlsLocked} onHighlight={highlightFace} />
           )}
           {recentMoves.length > 0 && (
             <ol className="recent-moves" aria-label="Recent moves, newest first">
@@ -341,57 +418,21 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
             </ol>
           )}
         </div>
-        <div className="view-controls">
-          <p className="orbit-hint" data-visible={showOrbitHint && !isHighlighting}>Drag or swipe to orbit.</p>
-          <div className="buttons viewer-switch-row" role="group" aria-label="Display controls">
-            <ViewerSwitch label="Animation" checked={animateTurns} disabled={isHighlighting || turning} onToggle={() => setAnimateTurns(!animateTurns)} />
-            <ViewerSwitch
-              label="Face arrows"
-              checked={showGuide}
-              disabled={!atDefaultView || isHighlighting}
-              onToggle={() => setShowLabels(!showLabels)}
-            />
-          </div>
-          <div className="buttons" role="group" aria-label="View and orientation controls">
-            {viewerActions.map((action) => (
-              <button
-                key={action}
-                type="button"
-                disabled={isHighlighting}
-                title={formatShortcut(bindings[action])}
-                onClick={viewerCommands[action]}
-                aria-pressed={action === 'backView' ? showBack : undefined}
-              >
-                {viewerNames[action]}
-              </button>
-            ))}
-          </div>
+        <div className="viewer-messages">
+          <p className="orbit-hint" data-visible={showOrbitHint && !controlsLocked}>Drag or swipe to orbit.</p>
+          {scrambleError && <p className="scramble-error" role="alert">Could not scramble the cube. Reload the page to try again.</p>}
         </div>
       </section>
 
       <TurnControls
         bindings={bindings}
-        disabled={isHighlighting}
+        disabled={controlsLocked}
         settingsOpen={settingsOpen}
         onSettings={() => setSettingsOpen(!settingsOpen)}
         onBindings={updateBindings}
         onTurn={turn}
-        onViewerAction={(action) => viewerCommands[action]()}
-        backView={showBack}
+        controls={controls}
       />
     </main>
-  );
-}
-
-function ViewerSwitch({ label, checked, disabled, onToggle }: {
-  label: string;
-  checked: boolean;
-  disabled: boolean;
-  onToggle: () => void;
-}) {
-  return (
-    <button className="viewer-switch" type="button" role="switch" aria-checked={checked} disabled={disabled} onClick={onToggle}>
-      {label}<span className="switch-track" aria-hidden="true" />
-    </button>
   );
 }

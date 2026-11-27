@@ -23,3 +23,8 @@ export function savePosition(algorithm: Alg) {
     // Keep playing with the current position even if storage is blocked or full.
   }
 }
+
+export async function generateScramble(): Promise<Alg> {
+  const { randomScrambleForEvent } = await import('cubing/scramble');
+  return randomScrambleForEvent('333');
+}

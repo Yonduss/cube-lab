@@ -28,11 +28,13 @@ Mirror Cube is a follow-up candidate. Confirm whether the selected renderer can 
 | --- | --- |
 | View | Open with a solved 3×3 or restore the last completed position saved in the browser. Drag with a mouse or swipe on the viewer to orbit the camera. Camera movement leaves the puzzle and timer state alone. |
 | Turns | Use `R`, `L`, `U`, `D`, `F`, and `B` for quarter turns and `Shift` with the same keys for inverse turns. Provide on-screen controls for both directions so touch users can solve the cube. Show a short control guide. |
-| Scramble | Generate a valid scramble from the solved position and arm the timer when it is ready for play. Scrambling again starts a fresh attempt. |
+| Scramble | Use the cubing.js random-state scrambler for event `333`. Apply the sequence to the solved position. Scrambling again replaces the current sequence and starts a fresh attempt. The timer milestone adds the timing state. |
 | Timer | Start on the first accepted face turn after a scramble. Stop when an accepted move completes the solve. Display the final time until Reset or Scramble. Free play from the initial solved position stays untimed. |
-| Reset | Restore the solved puzzle, clear the time, and return to free play. |
+| Reset | Restore the solved puzzle and clear the current attempt. Disable Reset while a scramble, turn, drag, or face highlight is active. Keep the state and camera controls independent. |
 
 Direct face dragging is a stretch interaction after keyboard and touch buttons work. If it is added, route its turns through the same state update as other inputs and make the difference between camera orbit and puzzle turns clear.
+
+A future practice mode could unlock Reset after the player completes one face. Define whether that means nine matching stickers or a correctly placed first layer. Check how to handle scrambles that already meet the condition.
 
 ### Local acceptance checks
 
@@ -40,7 +42,7 @@ Direct face dragging is a stretch interaction after keyboard and touch buttons w
 - [ ] Orbit the cube before and after scrambling. The timer stays idle and the puzzle position stays the same.
 - [ ] Apply `R` then `R'`, and separately apply four `R` turns. Each sequence returns a solved cube to its starting position.
 - [ ] Use a known scramble and its inverse to verify timer start, solved detection, and timer stop. Use a single-turn test scramble to check a solve on the first accepted move.
-- [ ] Try rapid input, Reset during an animation, and Scramble during a running attempt. The rendered puzzle, tracked position, and timer agree when play resumes.
+- [ ] Try rapid input, Reset during an animation, and Reset while the scramble is generating. Check that disabled actions leave the active operation unchanged. Verify that a new scramble and Reset leave the display and the saved position in agreement.
 - [ ] Verify that unrelated keys and shortcuts pressed while typing in an editable field leave the puzzle alone.
 
 ## Mobile tilt controls
