@@ -71,7 +71,7 @@ See the [project plan](PROJECT_PLAN.md) for acceptance criteria and the [deploym
    - Added Scramble, Reset, and editable shortcuts for [issue #5](https://github.com/Yonduss/cube-lab/issues/5). Both actions wait until the cube is idle. The saved position updates after each action completes.
    - Fixed production worker startup with a separate Vite worker build. Checked that scramble assets load on demand.
    - Verified development and production previews in Chromium with desktop and emulated touch input. Checked `/cube-lab/`, input locks, shortcut conflicts and persistence, position restoration, and a failed scramble load.
-   - Started the [learning notes](learning.md) with experiments from past and upcoming work.
+   - Started the [learning notes](LEARNING.md) with experiments from past and upcoming work.
    - date: 2026-11-27
 15. **Puzzle button placement and numeric shortcuts**
    - Grouped Scramble and Reset with Animation and Face arrows below the cube. Moved the key labels to hover help in the viewer. Kept clickable keycaps in Turn controls and made the two display switches configurable.

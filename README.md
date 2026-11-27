@@ -15,6 +15,15 @@ npm run dev
 
 Open the local URL printed by Vite. To check the production build, run `npm run build` and `npm run preview`.
 
+### Vite warning about `search-worker-entry.js`
+
+When you first use **Scramble** after opening the app, Vite can report that `node_modules/.vite/deps/search-worker-entry.js` does not exist. Vite's development optimizer gives the worker a filename with a hash. In Chromium, the first request returned `404` and cubing.js loaded the worker successfully from the alternate path.
+
+- If the scramble completes and face turns work again, you can continue using the development server with the current configuration. The warning's `optimizeDeps.exclude` suggestion is optional in this case.
+- If the app shows **Could not scramble the cube**, reload the page and try once more. If the problem persists, check the browser's Network panel for the other `search-worker-entry` requests and record their status codes.
+
+The production build bundles the worker separately. To check it at the GitHub Pages project path, run `npm run build -- --base=/cube-lab/` and `npm run preview -- --base=/cube-lab/`. Open the preview under `/cube-lab/` and try **Scramble** from Turn controls.
+
 ## Controls
 
 - Press `R`, `L`, `U`, `D`, `F`, or `B` for a clockwise quarter turn. Hold `Shift` with the same letter for the inverse. The **Turn controls** panel includes touch buttons and their current keycaps.
@@ -28,7 +37,7 @@ Open the local URL printed by Vite. To check the production build, run `npm run 
 
 - [Project plan](docs/PROJECT_PLAN.md) covers the 3×3 MVP, puzzle expansion, and the GitHub profile concept.
 - [Work log](docs/WORK_LOG.md) records decisions, verification, and the next task.
-- [Learning notes](docs/learning.md) collect questions and experiments to revisit while building Cube Lab.
+- [Learning notes](docs/LEARNING.md) collect questions and experiments to revisit while building Cube Lab.
 - [Git workflow](docs/GIT_WORKFLOW.md) records the issue, branch, and pull request naming conventions.
 - [References](docs/REFERENCES.md) collects library docs, interaction examples, and publishing sources.
 - [Deployment guide](docs/DEPLOYMENT.md) describes the planned GitHub Pages setup and release checks.
