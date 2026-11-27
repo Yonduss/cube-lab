@@ -277,6 +277,21 @@ h2 {
   justify-content: center;
 }
 
+.puzzle-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.puzzle-actions button:first-child {
+  border-color: var(--focus);
+}
+
+.scramble-error {
+  font-size: 0.875rem;
+  text-align: center;
+}
+
 .viewer-switch {
   display: inline-flex;
   align-items: center;

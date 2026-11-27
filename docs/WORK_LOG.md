@@ -4,7 +4,7 @@ Record meaningful changes and decisions after each work session. Add issue, PR, 
 
 ## Next tasks
 
-- [ ] Complete the 3×3 controls, scramble, reset, and timer. Run the local MVP checks.
+- [ ] Add the 3×3 timer and run the local MVP checks.
 - [ ] Write the personal 3×3 solve guide. Verify one documented case on a physical cube and in Cube Lab, then link the guide from the project README.
 - [ ] Add puzzle selection and run the switching checks for every exposed puzzle.
 - [ ] Preview the production build locally, deploy to GitHub Pages, and record the verified URL and workflow run.
@@ -67,3 +67,9 @@ See the [project plan](PROJECT_PLAN.md) for acceptance criteria and the [deploym
     - Moved the orientation controls into the viewer, added numeric shortcuts, and showed the three most recent puzzle moves.
     - Fixed the missing redraw when a face highlight expires and kept the main scene connected when hiding the rear preview. Added recovery for turns that miss their animation completion signal.
     - date: 2026-11-26
+14. **Random-state scramble and puzzle reset**
+   - Added Scramble, Reset, and editable shortcuts for [issue #5](https://github.com/Yonduss/cube-lab/issues/5). Both actions wait until the cube is idle. The saved position updates after each action completes.
+   - Fixed production worker startup with a separate Vite worker build. Checked that scramble assets load on demand.
+   - Verified development and production previews in Chromium with desktop and emulated touch input. Checked `/cube-lab/`, input locks, shortcut conflicts and persistence, position restoration, and a failed scramble load.
+   - Started the [learning notes](learning.md) with experiments from past and upcoming work.
+   - date: 2026-11-27

@@ -1,6 +1,6 @@
 import { useEffect, useEffectEvent, useState } from 'react';
 import {
-  actionLabel, defaultBindings, faceNames, faces, findAction, viewerActions, viewerNames,
+  actionLabel, defaultBindings, faceNames, faces, findAction, puzzleActions, puzzleNames, viewerActions, viewerNames,
   formatShortcut, shortcutFromEvent, type Bindings, type CubeAction, type ViewerAction,
 } from './cubeControls';
 import type { CubeMove } from './cubePosition';
@@ -123,6 +123,18 @@ export function TurnControls({ bindings, disabled, settingsOpen, onSettings, onB
           );
         })}
       </div>
+      {settingsOpen && (
+        <div className="camera-bindings">
+          <h3>Puzzle shortcuts</h3>
+          <div className="turn-pair" role="group" aria-label="Puzzle shortcuts">
+            {puzzleActions.map((action) => (
+              <button type="button" key={action} disabled={disabled} onClick={() => edit(action)} aria-label={`Edit ${puzzleNames[action]} shortcut`}>
+                <span>{puzzleNames[action]}</span>{keycap(action)}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       <div className="camera-bindings">
         <h3>View and orientation shortcuts</h3>
         <div className="turn-pair" role="group" aria-label="View and orientation shortcuts">

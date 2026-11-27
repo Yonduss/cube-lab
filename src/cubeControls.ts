@@ -8,11 +8,15 @@ export const faceNames: Record<CubeFace, string> = {
 
 export const viewerActions = ['resetView', 'backView', 'rotateFront', 'flipCube'] as const;
 export type ViewerAction = (typeof viewerActions)[number];
-export type CubeAction = FaceTurn | ViewerAction;
+export const puzzleActions = ['scramble', 'resetPuzzle'] as const;
+export type PuzzleAction = (typeof puzzleActions)[number];
+export type CubeAction = FaceTurn | ViewerAction | PuzzleAction;
 
 export const viewerNames: Record<ViewerAction, string> = {
   resetView: 'Reset view', backView: 'Back view', rotateFront: 'Rotate front', flipCube: 'Flip cube',
 };
+
+export const puzzleNames: Record<PuzzleAction, string> = { scramble: 'Scramble', resetPuzzle: 'Reset' };
 
 export type Shortcut = { key: string; shift: boolean };
 export type Bindings = Record<CubeAction, Shortcut>;
@@ -28,6 +32,8 @@ export const defaultBindings: Bindings = {
   backView: { key: '8', shift: false },
   rotateFront: { key: '7', shift: false },
   flipCube: { key: '9', shift: false },
+  scramble: { key: 'S', shift: false },
+  resetPuzzle: { key: 'X', shift: false },
 };
 
 const actions = Object.keys(defaultBindings) as CubeAction[];
@@ -55,7 +61,12 @@ export function findAction(bindings: Bindings, shortcut: Shortcut) {
 
 export function actionLabel(action: CubeAction) {
   if (isViewerAction(action)) return viewerNames[action];
+  if (isPuzzleAction(action)) return puzzleNames[action];
   return action.replace("'", '′');
+}
+
+export function isPuzzleAction(action: CubeAction): action is PuzzleAction {
+  return action === 'scramble' || action === 'resetPuzzle';
 }
 
 export function isViewerAction(action: CubeAction): action is ViewerAction {
