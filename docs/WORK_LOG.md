@@ -73,3 +73,8 @@ See the [project plan](PROJECT_PLAN.md) for acceptance criteria and the [deploym
    - Verified development and production previews in Chromium with desktop and emulated touch input. Checked `/cube-lab/`, input locks, shortcut conflicts and persistence, position restoration, and a failed scramble load.
    - Started the [learning notes](learning.md) with experiments from past and upcoming work.
    - date: 2026-11-27
+15. **Puzzle button placement and numeric shortcuts**
+   - Grouped Scramble and Reset with Animation and Face arrows below the cube. Moved the key labels to hover help in the viewer. Kept clickable keycaps in Turn controls and made the two display switches configurable.
+   - Assigned the four actions the default keys 1–4. Kept the earlier numeric view shortcuts and existing custom assignments.
+   - Verified both control locations, the desktop and mobile row layouts, toggle availability after orbiting, and shortcut migration in the `/cube-lab/` preview.
+   - date: 2026-11-27

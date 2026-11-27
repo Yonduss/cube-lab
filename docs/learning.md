@@ -35,10 +35,10 @@ Write down which actions changed the camera and which changed the puzzle positio
 1. Open the Network panel in browser developer tools.
 2. Reload the app.
 3. Check which files load before the first scramble.
-4. Press `S`.
+4. Press `1`.
 5. Check which files load after the request.
 
-Predict what happens when the source takes several seconds to load. Try `X` during that delay. Explain why a disabled button and a guard in the shared handler cover different input paths.
+Predict what happens when the source takes several seconds to load. Try `2` during that delay. Explain why a disabled button and a guard in the shared handler cover different input paths.
 
 Repeat the experiment in the production preview at `/cube-lab/`. Find the worker script in the Network panel. Read [vite.config.ts](../vite.config.ts) and explain why the worker needs a build separate from the code that runs in the page.
 

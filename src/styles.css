@@ -277,13 +277,7 @@ h2 {
   justify-content: center;
 }
 
-.puzzle-actions button {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.puzzle-actions button:first-child {
+.view-controls .scramble-button {
   border-color: var(--focus);
 }
 
@@ -472,6 +466,17 @@ button:active kbd {
 @media (max-width: 40rem) {
   .header-actions {
     width: 100%;
+  }
+}
+
+@media (max-width: 30rem) {
+  .view-controls .primary-controls {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .primary-controls .viewer-switch {
+    justify-content: center;
   }
 }
 

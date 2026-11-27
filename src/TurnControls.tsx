@@ -1,19 +1,18 @@
 import { useEffect, useEffectEvent, useState } from 'react';
 import {
-  actionLabel, defaultBindings, faceNames, faces, findAction, puzzleActions, puzzleNames, viewerActions, viewerNames,
-  formatShortcut, shortcutFromEvent, type Bindings, type CubeAction, type ViewerAction,
+  actionLabel, defaultBindings, displayActions, faceNames, faces, findAction, puzzleActions, utilityNames, viewerActions,
+  formatShortcut, shortcutFromEvent, type Bindings, type Control, type CubeAction, type UtilityAction,
 } from './cubeControls';
 import type { CubeMove } from './cubePosition';
 
-export function TurnControls({ bindings, disabled, settingsOpen, onSettings, onBindings, onTurn, onViewerAction, backView }: {
+export function TurnControls({ bindings, disabled, settingsOpen, onSettings, onBindings, onTurn, controls }: {
   bindings: Bindings;
   disabled: boolean;
   settingsOpen: boolean;
   onSettings: () => void;
   onBindings: (bindings: Bindings) => void;
   onTurn: (move: CubeMove) => void;
-  onViewerAction: (action: ViewerAction) => void;
-  backView: boolean;
+  controls: Record<UtilityAction, Control>;
 }) {
   const [draft, setDraft] = useState<Bindings | null>(null);
   const [editingAction, setEditingAction] = useState<CubeAction | null>(null);
@@ -74,6 +73,23 @@ export function TurnControls({ bindings, disabled, settingsOpen, onSettings, onB
     return <kbd data-capturing={editingAction === action}>{formatShortcut(shownBindings[action])}</kbd>;
   }
 
+  function utilityButton(action: UtilityAction) {
+    const control = controls[action];
+    const name = utilityNames[action];
+    return (
+      <button
+        type="button"
+        key={action}
+        disabled={disabled || (!settingsOpen && control.disabled)}
+        onClick={settingsOpen ? () => edit(action) : control.run}
+        aria-label={settingsOpen ? `Edit ${name} shortcut` : undefined}
+        aria-pressed={settingsOpen ? undefined : control.checked}
+      >
+        <span>{name}</span>{keycap(action)}
+      </button>
+    );
+  }
+
   return (
     <section className="controls" aria-labelledby="controls-title">
       <div className="control-header">
@@ -123,33 +139,16 @@ export function TurnControls({ bindings, disabled, settingsOpen, onSettings, onB
           );
         })}
       </div>
-      {settingsOpen && (
-        <div className="camera-bindings">
-          <h3>Puzzle shortcuts</h3>
-          <div className="turn-pair" role="group" aria-label="Puzzle shortcuts">
-            {puzzleActions.map((action) => (
-              <button type="button" key={action} disabled={disabled} onClick={() => edit(action)} aria-label={`Edit ${puzzleNames[action]} shortcut`}>
-                <span>{puzzleNames[action]}</span>{keycap(action)}
-              </button>
-            ))}
-          </div>
+      <div className="camera-bindings">
+        <h3>Puzzle and display shortcuts</h3>
+        <div className="turn-pair" role="group" aria-label="Puzzle and display shortcuts">
+          {[...puzzleActions, ...displayActions].map(utilityButton)}
         </div>
-      )}
+      </div>
       <div className="camera-bindings">
         <h3>View and orientation shortcuts</h3>
         <div className="turn-pair" role="group" aria-label="View and orientation shortcuts">
-          {viewerActions.map((action) => (
-            <button
-              type="button"
-              key={action}
-              disabled={disabled}
-              onClick={() => settingsOpen ? edit(action) : onViewerAction(action)}
-              aria-label={settingsOpen ? `Edit ${viewerNames[action]} shortcut` : `${viewerNames[action]} shortcut`}
-              aria-pressed={!settingsOpen && action === 'backView' ? backView : undefined}
-            >
-              <span>{viewerNames[action]}</span>{keycap(action)}
-            </button>
-          ))}
+          {viewerActions.map(utilityButton)}
         </div>
       </div>
     </section>

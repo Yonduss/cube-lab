@@ -5,7 +5,10 @@ import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import type { PointerEvent } from 'react';
 import { addFaceHighlight } from './faceHighlight';
 import { FaceGuide } from './FaceGuide';
-import { faceNames, findAction, formatShortcut, isPuzzleAction, isViewerAction, readBindings, saveBindings, shortcutFromEvent, viewerActions, viewerNames, type Bindings, type CubeFace, type PuzzleAction, type ViewerAction } from './cubeControls';
+import {
+  displayActions, faceNames, findAction, formatShortcut, isUtilityAction, puzzleActions, readBindings,
+  saveBindings, shortcutFromEvent, utilityNames, viewerActions, type Bindings, type Control, type CubeFace, type UtilityAction,
+} from './cubeControls';
 import { generateScramble, readPosition, savePosition, type CubeMove } from './cubePosition';
 import { ThemePicker } from './ThemePicker';
 import { TurnHelp } from './TurnHelp';
@@ -276,10 +279,6 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
     setShowBack((backView) => !backView);
   }
 
-  const viewerCommands: Record<ViewerAction, () => void> = {
-    resetView, backView: toggleBackView, rotateFront: () => turn('y'), flipCube: () => turn('x2'),
-  };
-
   function canReplacePosition() {
     return !scrambleRequest.current && !pendingMove.current && !drag.current && !highlightedFace && !settingsOpen;
   }
@@ -333,8 +332,15 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
     replacePosition(cube, new Alg());
   }
 
-  const puzzleCommands: Record<PuzzleAction, () => void> = {
-    scramble: () => { void scramble(); }, resetPuzzle,
+  const controls: Record<UtilityAction, Control> = {
+    scramble: { run: () => { void scramble(); }, disabled: puzzleBusy },
+    resetPuzzle: { run: resetPuzzle, disabled: puzzleBusy || !hasPosition },
+    animation: { run: () => setAnimateTurns((value) => !value), disabled: controlsLocked || turning, checked: animateTurns },
+    faceArrows: { run: () => setShowLabels((value) => !value), disabled: !atDefaultView || controlsLocked, checked: showGuide },
+    resetView: { run: resetView, disabled: controlsLocked },
+    backView: { run: toggleBackView, disabled: controlsLocked, checked: showBack },
+    rotateFront: { run: () => turn('y'), disabled: controlsLocked },
+    flipCube: { run: () => turn('x2'), disabled: controlsLocked },
   };
 
   const onShortcut = useEffectEvent((event: KeyboardEvent) => {
@@ -347,9 +353,10 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
     if (!action) return;
     event.preventDefault();
 
-    if (isViewerAction(action)) viewerCommands[action]();
-    else if (isPuzzleAction(action)) puzzleCommands[action]();
-    else turn(action);
+    if (isUtilityAction(action)) {
+      const control = controls[action];
+      if (!control.disabled) control.run();
+    } else turn(action);
   });
 
   useEffect(() => {
@@ -413,35 +420,40 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
         </div>
         <div className="view-controls">
           <p className="orbit-hint" data-visible={showOrbitHint && !controlsLocked}>Drag or swipe to orbit.</p>
-          <div className="buttons puzzle-actions" role="group" aria-label="Puzzle actions">
-            <button type="button" disabled={puzzleBusy} onClick={puzzleCommands.scramble}>
-              Scramble <kbd>{formatShortcut(bindings.scramble)}</kbd>
-            </button>
-            <button type="button" disabled={puzzleBusy || !hasPosition} onClick={resetPuzzle}>
-              Reset <kbd>{formatShortcut(bindings.resetPuzzle)}</kbd>
-            </button>
+          <div className="buttons primary-controls" role="group" aria-label="Puzzle and display controls">
+            {puzzleActions.map((action) => (
+              <button
+                key={action}
+                type="button"
+                className={action === 'scramble' ? 'scramble-button' : undefined}
+                title={formatShortcut(bindings[action])}
+                disabled={controls[action].disabled}
+                onClick={controls[action].run}
+              >
+                {utilityNames[action]}
+              </button>
+            ))}
+            {displayActions.map((action) => (
+              <ViewerSwitch
+                key={action}
+                label={utilityNames[action]}
+                title={formatShortcut(bindings[action])}
+                control={controls[action]}
+              />
+            ))}
           </div>
           {scrambleError && <p className="scramble-error" role="alert">Could not scramble the cube. Reload the page to try again.</p>}
-          <div className="buttons viewer-switch-row" role="group" aria-label="Display controls">
-            <ViewerSwitch label="Animation" checked={animateTurns} disabled={controlsLocked || turning} onToggle={() => setAnimateTurns(!animateTurns)} />
-            <ViewerSwitch
-              label="Face arrows"
-              checked={showGuide}
-              disabled={!atDefaultView || controlsLocked}
-              onToggle={() => setShowLabels(!showLabels)}
-            />
-          </div>
           <div className="buttons" role="group" aria-label="View and orientation controls">
             {viewerActions.map((action) => (
               <button
                 key={action}
                 type="button"
-                disabled={controlsLocked}
+                disabled={controls[action].disabled}
                 title={formatShortcut(bindings[action])}
-                onClick={viewerCommands[action]}
-                aria-pressed={action === 'backView' ? showBack : undefined}
+                onClick={controls[action].run}
+                aria-pressed={controls[action].checked}
               >
-                {viewerNames[action]}
+                {utilityNames[action]}
               </button>
             ))}
           </div>
@@ -455,21 +467,19 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
         onSettings={() => setSettingsOpen(!settingsOpen)}
         onBindings={updateBindings}
         onTurn={turn}
-        onViewerAction={(action) => viewerCommands[action]()}
-        backView={showBack}
+        controls={controls}
       />
     </main>
   );
 }
 
-function ViewerSwitch({ label, checked, disabled, onToggle }: {
+function ViewerSwitch({ label, title, control }: {
   label: string;
-  checked: boolean;
-  disabled: boolean;
-  onToggle: () => void;
+  title: string;
+  control: Control;
 }) {
   return (
-    <button className="viewer-switch" type="button" role="switch" aria-checked={checked} disabled={disabled} onClick={onToggle}>
+    <button className="viewer-switch" type="button" role="switch" title={title} aria-checked={control.checked} disabled={control.disabled} onClick={control.run}>
       {label}<span className="switch-track" aria-hidden="true" />
     </button>
   );
