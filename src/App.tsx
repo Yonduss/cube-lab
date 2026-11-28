@@ -1,7 +1,7 @@
 import { Alg, Move } from 'cubing/alg';
 import type { KPattern } from 'cubing/kpuzzle';
 import { setTwistyDebug, TwistyPlayer } from 'cubing/twisty';
-import { useEffect, useEffectEvent, useRef, useState } from 'react';
+import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react';
 import type { PointerEvent } from 'react';
 import { addFaceHighlight } from './faceHighlight';
 import { FaceGuide } from './FaceGuide';
@@ -13,13 +13,17 @@ import { generateScramble, readPosition, savePosition, type CubeMove } from './c
 import { ThemePicker } from './ThemePicker';
 import { TurnHelp } from './TurnHelp';
 import { TurnControls } from './TurnControls';
+import { SolveConfetti, SolveTimer, type SolveAttempt } from './SolveTimer';
 
 const defaultView = { cameraLatitude: 35, cameraLongitude: 30, cameraDistance: 6 };
 const orbitHintDelay = 3000;
 const highlightDuration = 2000;
 const turnTimeout = 1200;
 const scrambleTimeout = 15000;
+const celebrationDuration = 2000;
 const solvedOptions = { ignorePuzzleOrientation: true, ignoreCenterOrientation: true };
+
+type AcceptedMove = { id: number; move: CubeMove; acceptedAt: number };
 
 export function App({ solvedPattern }: { solvedPattern: KPattern }) {
   const viewer = useRef<HTMLDivElement>(null);
@@ -28,11 +32,15 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
   const camera = useRef({ latitude: defaultView.cameraLatitude, longitude: defaultView.cameraLongitude });
   const drag = useRef<{ id: number; x: number; y: number } | null>(null);
   const scrambleRequest = useRef<symbol | null>(null);
-  const pendingMove = useRef<CubeMove | null>(null);
-  const moveQueue = useRef<CubeMove[]>([]);
-  const startAnimatedMove = useRef<((move: CubeMove) => void) | null>(null);
+  const pendingMove = useRef<AcceptedMove | null>(null);
+  const moveQueue = useRef<AcceptedMove[]>([]);
+  const startAnimatedMove = useRef<((move: AcceptedMove) => void) | null>(null);
   const [algorithm, setAlgorithm] = useState(readPosition);
   const completedMoves = useRef(algorithm);
+  const [attempt, setAttempt] = useState<SolveAttempt>({ phase: 'idle' });
+  const currentAttempt = useRef(attempt);
+  const celebrationTimer = useRef<number | undefined>(undefined);
+  const [celebrating, setCelebrating] = useState(false);
   const orbitHintTimer = useRef<number | undefined>(undefined);
   const moveID = useRef(0);
   const [turning, setTurning] = useState(false);
@@ -52,16 +60,51 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
   );
   const showGuide = atDefaultView && showLabels;
   const isHighlighting = highlightedFace !== null;
-  const controlsLocked = isHighlighting || scrambling;
+  const controlsLocked = isHighlighting || scrambling || celebrating;
   const puzzleBusy = controlsLocked || turning || orbiting || settingsOpen;
   const hasPosition = algorithm.experimentalNumChildAlgNodes() > 0;
-  const isSolved = solvedPattern.applyAlg(algorithm).experimentalIsSolved(solvedOptions);
+  const position = solvedPattern.applyAlg(algorithm);
+  const isSolved = position.experimentalIsSolved(solvedOptions);
 
-  function recordPosition(next: Alg) {
+  const recordPosition = useCallback((next: Alg) => {
     completedMoves.current = next;
     setAlgorithm(next);
     savePosition(next);
-  }
+  }, []);
+
+  const recordAttempt = useCallback((next: SolveAttempt) => {
+    currentAttempt.current = next;
+    setAttempt(next);
+  }, []);
+
+  const completeMoves = useCallback((moves: AcceptedMove[]) => {
+    let next = completedMoves.current;
+    let active = currentAttempt.current;
+    for (const { id, move, acceptedAt } of moves) {
+      next = next.concat(move);
+      if (active.phase !== 'running' || move === 'x2' || move === 'y') continue;
+
+      const turns = active.turns + 1;
+      if (solvedPattern.applyAlg(next).experimentalIsSolved(solvedOptions)) {
+        // Score the solving input without counting time spent in the animation queue.
+        active = { phase: 'finished', elapsed: acceptedAt - active.startedAt, turns };
+        moveQueue.current = [];
+        setRecentMoves((recent) => [{ id, move }, ...recent.filter((entry) => entry.id < id)].slice(0, 3));
+        if (window.matchMedia('(prefers-reduced-motion: no-preference)').matches) {
+          setCelebrating(true);
+          celebrationTimer.current = window.setTimeout(() => {
+            celebrationTimer.current = undefined;
+            setCelebrating(false);
+          }, celebrationDuration);
+        }
+        break;
+      }
+      active = { ...active, turns };
+    }
+    if (active !== currentAttempt.current) recordAttempt(active);
+    recordPosition(next);
+    return next;
+  }, [recordAttempt, recordPosition, solvedPattern]);
 
   useEffect(() => {
     setTwistyDebug({ shareAllNewRenderers: 'always' });
@@ -90,21 +133,20 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
     function recoverTurns() {
       if (!pendingMove.current) return;
 
-      // An interrupted animation must not keep the queue locked or drop accepted inputs.
+      // Recover accepted inputs up to the same solve boundary as normal animation.
       const moves = [pendingMove.current, ...moveQueue.current];
-      const next = moves.reduce((position, move) => position.concat(move), completedMoves.current);
       pendingMove.current = null;
       moveQueue.current = [];
       animationStarted = false;
       catchUpMove.set({ move: null, amount: 0 });
-      cube.alg = next;
+      cube.alg = completeMoves(moves);
       cube.timestamp = 'end';
-      recordPosition(next);
       setTurning(false);
     }
 
-    function animateMove(move: CubeMove) {
-      pendingMove.current = move;
+    function animateMove(input: AcceptedMove) {
+      pendingMove.current = input;
+      const { move } = input;
       animationStarted = false;
       cube.alg = completedMoves.current.concat(move);
       cube.timestamp = 'end';
@@ -118,7 +160,7 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
         animationStarted = true;
       } else if (animationStarted && pendingMove.current) {
         window.clearTimeout(watchdog);
-        recordPosition(completedMoves.current.concat(pendingMove.current));
+        completeMoves([pendingMove.current]);
         animationStarted = false;
         pendingMove.current = null;
         const nextMove = moveQueue.current.shift();
@@ -131,6 +173,8 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
     return () => {
       window.clearTimeout(orbitHintTimer.current);
       window.clearTimeout(watchdog);
+      window.clearTimeout(celebrationTimer.current);
+      celebrationTimer.current = undefined;
       catchUpMove.removeFreshListener(onAnimationChange);
       startAnimatedMove.current = null;
       rearViewRequested.current = false;
@@ -138,7 +182,7 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
       cube.remove();
       player.current = null;
     };
-  }, []);
+  }, [completeMoves]);
 
   useEffect(() => {
     const cube = player.current;
@@ -215,30 +259,31 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
 
   function turn(move: CubeMove) {
     const cube = player.current;
-    if (!cube || highlightedFace || scrambleRequest.current) return;
+    if (!cube || highlightedFace || scrambleRequest.current || celebrationTimer.current !== undefined) return;
+    const input = { id: ++moveID.current, move, acceptedAt: performance.now() };
+    if (currentAttempt.current.phase === 'ready' && move !== 'x2' && move !== 'y') {
+      recordAttempt({ phase: 'running', startedAt: input.acceptedAt, turns: 0 });
+    }
     noteMovement();
-    const entry = { id: ++moveID.current, move };
-    setRecentMoves((recent) => [entry, ...recent].slice(0, 3));
+    setRecentMoves((recent) => [input, ...recent].slice(0, 3));
 
     if (pendingMove.current) {
-      moveQueue.current.push(move);
+      moveQueue.current.push(input);
       return;
     }
 
     if (!animateTurns) {
-      const next = completedMoves.current.concat(move);
-      cube.alg = next;
-      recordPosition(next);
+      cube.alg = completeMoves([input]);
       return;
     }
 
     setTurning(true);
-    startAnimatedMove.current?.(move);
+    startAnimatedMove.current?.(input);
   }
 
   function setView(latitude: number, longitude: number) {
     const cube = player.current;
-    if (!cube || highlightedFace || scrambleRequest.current) return;
+    if (!cube || highlightedFace || scrambleRequest.current || celebrationTimer.current !== undefined) return;
     noteMovement();
     camera.current = { latitude, longitude };
     cube.cameraLatitude = latitude;
@@ -247,7 +292,7 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
   }
 
   function startOrbit(event: PointerEvent<HTMLDivElement>) {
-    if (event.button !== 0 || drag.current || highlightedFace || scrambleRequest.current) return;
+    if (event.button !== 0 || drag.current || highlightedFace || scrambleRequest.current || celebrationTimer.current !== undefined) return;
     event.currentTarget.setPointerCapture(event.pointerId);
     drag.current = { id: event.pointerId, x: event.clientX, y: event.clientY };
     setOrbiting(true);
@@ -255,7 +300,7 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
 
   function orbitView(event: PointerEvent<HTMLDivElement>) {
     const start = drag.current;
-    if (!start || start.id !== event.pointerId || highlightedFace) return;
+    if (!start || start.id !== event.pointerId || highlightedFace || celebrationTimer.current !== undefined) return;
 
     const size = Math.min(event.currentTarget.clientWidth, event.currentTarget.clientHeight);
     const degreesPerPixel = 180 / size;
@@ -280,7 +325,8 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
   }
 
   function canReplacePosition() {
-    return !scrambleRequest.current && !pendingMove.current && !drag.current && !highlightedFace && !settingsOpen;
+    return !scrambleRequest.current && !pendingMove.current && !drag.current && !highlightedFace
+      && celebrationTimer.current === undefined && !settingsOpen;
   }
 
   function replacePosition(cube: TwistyPlayer, next: Alg) {
@@ -311,6 +357,7 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
       if (scrambleRequest.current !== request) return;
       if (solvedPattern.applyAlg(next).experimentalIsSolved(solvedOptions)) throw new Error('The scramble did not change the solved position.');
       replacePosition(cube, next);
+      recordAttempt({ phase: 'ready' });
     } catch (error) {
       if (scrambleRequest.current !== request) return;
       console.error('Could not scramble the cube.', error);
@@ -330,6 +377,7 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
 
     setScrambleError(false);
     replacePosition(cube, new Alg());
+    recordAttempt({ phase: 'idle' });
   }
 
   const controls: Record<UtilityAction, Control> = {
@@ -344,7 +392,7 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
   };
 
   const onShortcut = useEffectEvent((event: KeyboardEvent) => {
-    if (controlsLocked || scrambleRequest.current || settingsOpen || event.defaultPrevented) return;
+    if (controlsLocked || scrambleRequest.current || celebrationTimer.current !== undefined || settingsOpen || event.defaultPrevented) return;
     const target = event.target;
     if (target instanceof HTMLElement && (target.isContentEditable || target.closest('input, textarea, select, [role="textbox"]'))) return;
 
@@ -366,7 +414,7 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
   }, []);
 
   function highlightFace(face: CubeFace) {
-    if (!turning && !highlightedFace && !drag.current && !scrambleRequest.current) setHighlightedFace(face);
+    if (!turning && !highlightedFace && !drag.current && !scrambleRequest.current && celebrationTimer.current === undefined) setHighlightedFace(face);
   }
 
   function updateBindings(next: Bindings) {
@@ -391,9 +439,10 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
       <section className="stage" aria-labelledby="puzzle-title">
         <div className="stage-header">
           <h2 id="puzzle-title">3 × 3 × 3</h2>
-          <p className="position" role="status">
+          <p className="sr-only" role="status">
             {positionLabel}
           </p>
+          <SolveTimer attempt={attempt} scrambling={scrambling} />
         </div>
         <div className="cube-stage">
           <div
@@ -406,17 +455,23 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
             onLostPointerCapture={endOrbit}
           />
           {showGuide && (
-            <FaceGuide activeFace={highlightedFace} disabled={turning || controlsLocked} onHighlight={highlightFace} />
+            <FaceGuide activeFace={highlightedFace} centers={position.patternData.CENTERS.pieces} disabled={turning || controlsLocked} onHighlight={highlightFace} />
           )}
-          {recentMoves.length > 0 && (
-            <ol className="recent-moves" aria-label="Recent moves, newest first">
-              {recentMoves.map(({ id, move }) => (
-                <li key={id} aria-label={move === 'x2' ? 'Flip cube' : move === 'y' ? 'Rotate front' : undefined}>
-                  <kbd>{move.replace("'", '′')}</kbd>
-                </li>
-              ))}
-            </ol>
-          )}
+          <div className="move-summary">
+            {recentMoves.length > 0 && (
+              <ol className="recent-moves" aria-label="Recent moves, newest first">
+                {recentMoves.map(({ id, move }) => (
+                  <li key={id} aria-label={move === 'x2' ? 'Flip cube' : move === 'y' ? 'Rotate front' : undefined}>
+                    <kbd>{move.replace("'", '′')}</kbd>
+                  </li>
+                ))}
+              </ol>
+            )}
+            {attempt.phase === 'running' && (
+              <p className="turn-count"><span className="sr-only">Turns: </span>{attempt.turns}</p>
+            )}
+          </div>
+          {celebrating && <SolveConfetti />}
         </div>
         <div className="viewer-messages">
           <p className="orbit-hint" data-visible={showOrbitHint && !controlsLocked}>Drag or swipe to orbit.</p>

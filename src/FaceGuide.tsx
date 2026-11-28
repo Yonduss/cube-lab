@@ -2,14 +2,18 @@ import { faceNames, type CubeFace } from './cubeControls';
 
 const hiddenFaces = new Set<CubeFace>(['L', 'B', 'D']);
 
-export function FaceGuide({ activeFace, disabled, onHighlight }: {
+// The cubing.js 3×3 center orbit uses the order U, L, F, R, B, D.
+const centerColors = ['white', 'orange', 'green', 'red', 'blue', 'yellow'];
+
+export function FaceGuide({ activeFace, centers, disabled, onHighlight }: {
   activeFace: CubeFace | null;
+  centers: number[];
   disabled: boolean;
   onHighlight: (face: CubeFace) => void;
 }) {
   return (
     <div className="face-guide" role="group" aria-label="Face directions">
-      {faces.map(([letter, arrow]) => (
+      {faces.map(([letter, arrow, center]) => (
         <span className={`face-marker face-marker-${letter.toLowerCase()}`} key={letter}>
           <button
             type="button"
@@ -18,6 +22,7 @@ export function FaceGuide({ activeFace, disabled, onHighlight }: {
             aria-disabled={disabled}
             tabIndex={disabled && activeFace !== letter ? -1 : undefined}
             data-active={activeFace === letter}
+            data-color={centerColors[centers[center]]}
             onClick={() => { if (!disabled) onHighlight(letter); }}
           >
             {letter}
@@ -30,5 +35,5 @@ export function FaceGuide({ activeFace, disabled, onHighlight }: {
 }
 
 const faces = [
-  ['U', '↓'], ['F', '→'], ['R', '←'], ['L', '↘'], ['B', '↙'], ['D', '↑'],
+  ['U', '↓', 0], ['F', '→', 2], ['R', '←', 3], ['L', '↘', 1], ['B', '↙', 4], ['D', '↑', 5],
 ] as const;

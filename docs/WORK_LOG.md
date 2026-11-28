@@ -4,7 +4,7 @@ Record meaningful changes and decisions after each work session. Add issue, PR, 
 
 ## Next tasks
 
-- [ ] Add the 3×3 timer and run the local MVP checks.
+- [ ] Run the full 3×3 MVP checklist before release.
 - [ ] Write the personal 3×3 solve guide. Verify one documented case on a physical cube and in Cube Lab, then link the guide from the project README.
 - [ ] Add puzzle selection and run the switching checks for every exposed puzzle.
 - [ ] Preview the production build locally, deploy to GitHub Pages, and record the verified URL and workflow run.
@@ -82,3 +82,17 @@ See the [project plan](PROJECT_PLAN.md) for acceptance criteria and the [deploym
    - Removed the duplicate buttons below the cube. Kept the orbit hint, face guide, recent moves, and messages in the viewer.
    - Verified the Turn controls panel, keyboard shortcuts, and position restoration in the production preview with desktop and emulated touch input.
    - date: 2026-11-27
+17. **Timed 3×3 solves**
+   - Added a timer that starts with the first face turn after Scramble. The solving face turn records the time and shows a reduced-motion-aware celebration.
+   - Checked one-move and multi-move solves, reset, reload, and interrupted animation recovery. Verified a full random scramble and inverse on desktop and emulated touch in the `/cube-lab/` preview.
+   - Updated the README and appended a plain-English explanation of the timer to the learning notes.
+   - date: 2026-11-28
+18. **Solve feedback and face guide review**
+   - Lowered the U arrow, matched face labels to the current center stickers, and showed the number of applied face turns below recent moves and in the solve result.
+   - Widened the optional confetti animation across the cube and verified its visibility. Checked face colors after reorientation and turn counts with keyboard, emulated touch, and interrupted animation recovery.
+   - date: 2026-11-28
+19. **Simpler timed solve display**
+   - Removed the visible puzzle status badge and the running timer caption. Kept scramble progress near the timer and a plain turn count during active attempts.
+   - Matched face labels to the 3D sticker palette. Paused puzzle input during confetti and discarded moves queued beyond the solving turn.
+   - Verified the input lock and release, queued solve recovery, reduced motion, and full production solves with desktop and emulated touch input.
+   - date: 2026-11-28

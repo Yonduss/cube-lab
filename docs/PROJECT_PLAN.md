@@ -28,8 +28,8 @@ Mirror Cube is a follow-up candidate. Confirm whether the selected renderer can 
 | --- | --- |
 | View | Open with a solved 3×3 or restore the last completed position saved in the browser. Drag with a mouse or swipe on the viewer to orbit the camera. Camera movement leaves the puzzle and timer state alone. |
 | Turns | Use `R`, `L`, `U`, `D`, `F`, and `B` for quarter turns and `Shift` with the same keys for inverse turns. Provide on-screen controls for both directions so touch users can solve the cube. Show a short control guide. |
-| Scramble | Use the cubing.js random-state scrambler for event `333`. Apply the sequence to the solved position. Scrambling again replaces the current sequence and starts a fresh attempt. The timer milestone adds the timing state. |
-| Timer | Start on the first accepted face turn after a scramble. Stop when an accepted move completes the solve. Display the final time until Reset or Scramble. Free play from the initial solved position stays untimed. |
+| Scramble | Use the cubing.js random-state scrambler for event `333`. Apply the sequence to the solved position. A successful scramble replaces the current sequence and prepares a fresh timed attempt. |
+| Timer | Start on the first accepted face turn after a scramble. When a committed face turn solves the puzzle, keep the time of that input and show a short celebration. Keep the result until Reset or a successful Scramble. Free play and restored positions stay untimed. |
 | Reset | Restore the solved puzzle and clear the current attempt. Disable Reset while a scramble, turn, drag, or face highlight is active. Keep the state and camera controls independent. |
 
 Direct face dragging is a stretch interaction after keyboard and touch buttons work. If it is added, route its turns through the same state update as other inputs and make the difference between camera orbit and puzzle turns clear.

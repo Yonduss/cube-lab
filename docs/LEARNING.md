@@ -61,3 +61,17 @@ Explain why the app saves completed moves. Measure a short session and a long se
 **Study next:** Stickers, piece positions, and state transitions. [Issue #6](https://github.com/Yonduss/cube-lab/issues/6)
 
 Compare one face with nine matching stickers, a correctly placed first layer, and a fully solved cube. Decide which condition a practice mode would use to unlock Reset. Check whether a new scramble can already meet that condition. For the timer, identify the event that distinguishes a player solve from a reset or a restored solved position.
+
+## How the solve timer works
+
+The app keeps two kinds of state. The cube position tells you where the pieces are. The attempt tells you whether a timed solve is ready, running, or finished. When you reload the page, the app restores the cube position and starts with an idle timer. This keeps an old position available for practice.
+
+A successful Scramble prepares an attempt. The first face turn starts it. You can inspect the cube and change its orientation before that turn. A manual start would allow a player to make part of the solve before starting the clock. Reset clears the attempt and the cube position together.
+
+The app records the time when it accepts a move. It checks the cube position when it applies that move. If the move solves the cube, the time comes from the recorded input. This keeps time spent waiting for animation or queued turns out of the result. The solved check uses the positions and orientations of the pieces. A whole-cube rotation can change which side faces you while every piece stays in the correct position relative to the other pieces.
+
+The timer reads `performance.now()`. This clock measures elapsed time even if the date or system time changes. The display redraws as the browser produces frames. A slow frame can delay a number on screen. The next frame reads the current clock again and catches up.
+
+In code, [App.tsx](../src/App.tsx) owns the attempt and knows when a move finishes. [SolveTimer.tsx](../src/SolveTimer.tsx) displays the time and the result. This is one practical way to keep a frequently changing display from redrawing the full app.
+
+The turn counter changes when the app applies a face turn. A key press, a click, and a tap can all request the same turn. Counting the applied move gives them the same result. A view change or whole-cube rotation leaves the count unchanged. The app stores the final count with the time when the solving turn is applied.
