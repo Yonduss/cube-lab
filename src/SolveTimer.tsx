@@ -2,8 +2,12 @@ import { useEffect, useState, type CSSProperties } from 'react';
 
 export type SolveAttempt =
   | { phase: 'idle' | 'ready' }
-  | { phase: 'running'; startedAt: number }
-  | { phase: 'finished'; elapsed: number };
+  | { phase: 'running'; startedAt: number; turns: number }
+  | { phase: 'finished'; elapsed: number; turns: number };
+
+export function formatTurns(turns: number) {
+  return `${turns} ${turns === 1 ? 'turn' : 'turns'}`;
+}
 
 function formatTime(elapsed: number) {
   const total = Math.floor(elapsed / 10);
@@ -38,15 +42,20 @@ export function SolveTimer({ attempt }: { attempt: SolveAttempt }) {
     <div className="solve-timer" data-phase={attempt.phase}>
       <span className="solve-time" role="timer" aria-label="Solve time">{time}</span>
       <p className="solve-timer-label" aria-live="polite">
-        {label}{attempt.phase === 'finished' && <span className="sr-only"> Final time {time}.</span>}
+        {label}{attempt.phase === 'finished' && (
+          <> <span className="sr-only">Final time {time}.</span> Solved in {formatTurns(attempt.turns)}.</>
+        )}
       </p>
-      {attempt.phase === 'finished' && (
-        <div className="solve-confetti" aria-hidden="true">
-          {Array.from({ length: 12 }, (_, index) => (
-            <i key={index} style={{ '--piece': index } as CSSProperties} />
-          ))}
-        </div>
-      )}
+    </div>
+  );
+}
+
+export function SolveConfetti() {
+  return (
+    <div className="solve-confetti" aria-hidden="true">
+      {Array.from({ length: 24 }, (_, index) => (
+        <span key={index} style={{ '--piece': index } as CSSProperties} />
+      ))}
     </div>
   );
 }

@@ -37,7 +37,7 @@ Use the buttons in **Turn controls** or press the shortcut shown on each keycap.
 | Camera | `0` to reset the view, `8` to toggle the rear view |
 | Cube orientation | `7` to rotate the front, `9` to flip the cube |
 
-Drag or swipe the cube to orbit the camera. Select a face arrow to highlight that layer. Rotate front and Flip cube change which face the move letters refer to. The viewer shows the three most recent moves.
+Drag or swipe the cube to orbit the camera. In the default view, each face label shows the color of its center sticker. Select a label to highlight that layer. Rotate front and Flip cube change which face the move letters refer to. The viewer shows the three most recent moves.
 
 To change a shortcut, open **Keyboard settings**, select a keycap, and press a new shortcut. Use **Save** to apply changes or **Cancel** to discard them. **Restore defaults** loads the default assignments for review before saving.
 
@@ -45,7 +45,8 @@ To change a shortcut, open **Keyboard settings**, select a keycap, and press a n
 
 1. Select **Scramble** or press its shortcut. The timer shows `00:00:00.00` while you inspect the cube.
 2. Make a face turn to start the timer. Camera movement and whole-cube reorientation leave it waiting.
-3. Solve the cube with face turns. The timer keeps the result until the next successful scramble or Reset.
+3. Solve the cube with face turns. The counter below the recent moves counts each applied quarter turn. Camera movement and whole-cube reorientation leave the count unchanged.
+4. When you solve the cube, the final time and turn count stay on screen until the next successful scramble or Reset. Confetti plays once when the system allows motion.
 
 **Reset** restores the cube and clears the timer. To start another timed solve, scramble again. Free play and positions restored after a reload are untimed. The browser saves your last completed cube position and shortcuts.
 

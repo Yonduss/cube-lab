@@ -87,3 +87,7 @@ See the [project plan](PROJECT_PLAN.md) for acceptance criteria and the [deploym
    - Checked one-move and multi-move solves, reset, reload, and interrupted animation recovery. Verified a full random scramble and inverse on desktop and emulated touch in the `/cube-lab/` preview.
    - Updated the README and appended a plain-English explanation of the timer to the learning notes.
    - date: 2026-11-28
+18. **Solve feedback and face guide review**
+   - Lowered the U arrow, matched face labels to the current center stickers, and showed the number of applied face turns below recent moves and in the solve result.
+   - Widened the optional confetti animation across the cube and verified its visibility. Checked face colors after reorientation and turn counts with keyboard, emulated touch, and interrupted animation recovery.
+   - date: 2026-11-28

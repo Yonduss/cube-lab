@@ -73,3 +73,5 @@ The app records the time when it accepts a move. It checks the cube position whe
 The timer reads `performance.now()`. This clock measures elapsed time even if the date or system time changes. The display redraws as the browser produces frames. A slow frame can delay a number on screen. The next frame reads the current clock again and catches up.
 
 In code, [App.tsx](../src/App.tsx) owns the attempt and knows when a move finishes. [SolveTimer.tsx](../src/SolveTimer.tsx) displays the time and the result. This is one practical way to keep a frequently changing display from redrawing the full app.
+
+The turn counter changes when the app applies a face turn. A key press, a click, and a tap can all request the same turn. Counting the applied move gives them the same result. A view change or whole-cube rotation leaves the count unchanged. The app stores the final count with the time when the solving turn is applied.

@@ -13,7 +13,7 @@ import { generateScramble, readPosition, savePosition, type CubeMove } from './c
 import { ThemePicker } from './ThemePicker';
 import { TurnHelp } from './TurnHelp';
 import { TurnControls } from './TurnControls';
-import { SolveTimer, type SolveAttempt } from './SolveTimer';
+import { formatTurns, SolveConfetti, SolveTimer, type SolveAttempt } from './SolveTimer';
 
 const defaultView = { cameraLatitude: 35, cameraLongitude: 30, cameraDistance: 6 };
 const orbitHintDelay = 3000;
@@ -60,7 +60,8 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
   const controlsLocked = isHighlighting || scrambling;
   const puzzleBusy = controlsLocked || turning || orbiting || settingsOpen;
   const hasPosition = algorithm.experimentalNumChildAlgNodes() > 0;
-  const isSolved = solvedPattern.applyAlg(algorithm).experimentalIsSolved(solvedOptions);
+  const position = solvedPattern.applyAlg(algorithm);
+  const isSolved = position.experimentalIsSolved(solvedOptions);
 
   const recordPosition = useCallback((next: Alg) => {
     completedMoves.current = next;
@@ -75,15 +76,20 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
 
   const completeMoves = useCallback((moves: AcceptedMove[]) => {
     let next = completedMoves.current;
+    let active = currentAttempt.current;
     for (const { move, acceptedAt } of moves) {
       next = next.concat(move);
-      const active = currentAttempt.current;
-      if (active.phase === 'running' && move !== 'x2' && move !== 'y'
-        && solvedPattern.applyAlg(next).experimentalIsSolved(solvedOptions)) {
+      if (active.phase !== 'running' || move === 'x2' || move === 'y') continue;
+
+      const turns = active.turns + 1;
+      if (solvedPattern.applyAlg(next).experimentalIsSolved(solvedOptions)) {
         // Score the solving input without counting time spent in the animation queue.
-        recordAttempt({ phase: 'finished', elapsed: acceptedAt - active.startedAt });
+        active = { phase: 'finished', elapsed: acceptedAt - active.startedAt, turns };
+      } else {
+        active = { ...active, turns };
       }
     }
+    if (active !== currentAttempt.current) recordAttempt(active);
     recordPosition(next);
     return next;
   }, [recordAttempt, recordPosition, solvedPattern]);
@@ -242,7 +248,7 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
     if (!cube || highlightedFace || scrambleRequest.current) return;
     const input = { move, acceptedAt: performance.now() };
     if (currentAttempt.current.phase === 'ready' && move !== 'x2' && move !== 'y') {
-      recordAttempt({ phase: 'running', startedAt: input.acceptedAt });
+      recordAttempt({ phase: 'running', startedAt: input.acceptedAt, turns: 0 });
     }
     noteMovement();
     const entry = { id: ++moveID.current, move };
@@ -435,17 +441,23 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
             onLostPointerCapture={endOrbit}
           />
           {showGuide && (
-            <FaceGuide activeFace={highlightedFace} disabled={turning || controlsLocked} onHighlight={highlightFace} />
+            <FaceGuide activeFace={highlightedFace} centers={position.patternData.CENTERS.pieces} disabled={turning || controlsLocked} onHighlight={highlightFace} />
           )}
-          {recentMoves.length > 0 && (
-            <ol className="recent-moves" aria-label="Recent moves, newest first">
-              {recentMoves.map(({ id, move }) => (
-                <li key={id} aria-label={move === 'x2' ? 'Flip cube' : move === 'y' ? 'Rotate front' : undefined}>
-                  <kbd>{move.replace("'", '′')}</kbd>
-                </li>
-              ))}
-            </ol>
-          )}
+          <div className="move-summary">
+            {recentMoves.length > 0 && (
+              <ol className="recent-moves" aria-label="Recent moves, newest first">
+                {recentMoves.map(({ id, move }) => (
+                  <li key={id} aria-label={move === 'x2' ? 'Flip cube' : move === 'y' ? 'Rotate front' : undefined}>
+                    <kbd>{move.replace("'", '′')}</kbd>
+                  </li>
+                ))}
+              </ol>
+            )}
+            {attempt.phase !== 'idle' && (
+              <p className="turn-count">{formatTurns('turns' in attempt ? attempt.turns : 0)}</p>
+            )}
+          </div>
+          {attempt.phase === 'finished' && <SolveConfetti />}
         </div>
         <div className="viewer-messages">
           <p className="orbit-hint" data-visible={showOrbitHint && !controlsLocked}>Drag or swipe to orbit.</p>
