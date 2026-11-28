@@ -45,8 +45,8 @@ To change a shortcut, open **Keyboard settings**, select a keycap, and press a n
 
 1. Select **Scramble** or press its shortcut. The timer shows `00:00:00.00` while you inspect the cube.
 2. Make a face turn to start the timer. Camera movement and whole-cube reorientation leave it waiting.
-3. Solve the cube with face turns. The counter below the recent moves counts each applied quarter turn. Camera movement and whole-cube reorientation leave the count unchanged.
-4. When you solve the cube, the final time and turn count stay on screen until the next successful scramble or Reset. Confetti plays once when the system allows motion.
+3. Solve the cube with face turns. During the timed solve, the number below the recent moves counts each applied quarter turn. Camera movement and whole-cube reorientation leave the count unchanged.
+4. When you solve the cube, the final time and turn count stay in the result until the next successful scramble or Reset. When the system allows motion, confetti plays once and the cube controls pause until it finishes.
 
 **Reset** restores the cube and clears the timer. To start another timed solve, scramble again. Free play and positions restored after a reload are untimed. The browser saves your last completed cube position and shortcuts.
 

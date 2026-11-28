@@ -16,7 +16,7 @@ function formatTime(elapsed: number) {
     + '.' + String(total % 100).padStart(2, '0');
 }
 
-export function SolveTimer({ attempt }: { attempt: SolveAttempt }) {
+export function SolveTimer({ attempt, scrambling }: { attempt: SolveAttempt; scrambling: boolean }) {
   const [sample, setSample] = useState<{ start: number; elapsed: number }>();
   const startedAt = attempt.phase === 'running' ? attempt.startedAt : null;
 
@@ -33,16 +33,17 @@ export function SolveTimer({ attempt }: { attempt: SolveAttempt }) {
   }, [startedAt]);
 
   const elapsed = attempt.phase === 'finished' ? attempt.elapsed : sample?.start === startedAt ? sample.elapsed : 0;
-  const label = attempt.phase === 'ready' ? 'First turn starts the timer'
+  const label = scrambling ? 'Scrambling…'
+    : attempt.phase === 'ready' ? 'First turn starts the timer'
     : attempt.phase === 'finished' ? 'Congratulations!'
-    : attempt.phase === 'running' ? 'Solving' : 'Scramble to start a timed solve';
+    : attempt.phase === 'running' ? '' : 'Scramble to start a timed solve';
   const time = formatTime(elapsed);
 
   return (
     <div className="solve-timer" data-phase={attempt.phase}>
       <span className="solve-time" role="timer" aria-label="Solve time">{time}</span>
-      <p className="solve-timer-label" aria-live="polite">
-        {label}{attempt.phase === 'finished' && (
+      <p className="solve-timer-label" aria-live={scrambling ? 'off' : 'polite'}>
+        {label}{!scrambling && attempt.phase === 'finished' && (
           <> <span className="sr-only">Final time {time}.</span> Solved in {formatTurns(attempt.turns)}.</>
         )}
       </p>

@@ -91,3 +91,8 @@ See the [project plan](PROJECT_PLAN.md) for acceptance criteria and the [deploym
    - Lowered the U arrow, matched face labels to the current center stickers, and showed the number of applied face turns below recent moves and in the solve result.
    - Widened the optional confetti animation across the cube and verified its visibility. Checked face colors after reorientation and turn counts with keyboard, emulated touch, and interrupted animation recovery.
    - date: 2026-11-28
+19. **Simpler timed solve display**
+   - Removed the visible puzzle status badge and the running timer caption. Kept scramble progress near the timer and a plain turn count during active attempts.
+   - Matched face labels to the 3D sticker palette. Paused puzzle input during confetti and discarded moves queued beyond the solving turn.
+   - Verified the input lock and release, queued solve recovery, reduced motion, and full production solves with desktop and emulated touch input.
+   - date: 2026-11-28

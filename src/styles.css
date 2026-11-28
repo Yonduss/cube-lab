@@ -75,11 +75,6 @@ h1 {
   padding: 1rem 1.25rem 0;
 }
 
-.stage-header .position {
-  grid-column: 3;
-  justify-self: end;
-}
-
 .solve-timer {
   grid-row: 1;
   grid-column: 2;
@@ -94,6 +89,7 @@ h1 {
 }
 
 .solve-timer-label {
+  min-height: 1.25rem;
   margin-top: 0.25rem;
   color: var(--muted);
   font-size: 0.875rem;
@@ -154,8 +150,7 @@ h1 {
 }
 
 @media (max-width: 36rem) {
-  .stage-header { grid-template-columns: 1fr 1fr; }
-  .stage-header .position { grid-column: 2; }
+  .stage-header { grid-template-columns: 1fr; }
   .solve-timer {
     grid-row: 2;
     grid-column: 1 / -1;
@@ -165,13 +160,6 @@ h1 {
 h2 {
   font-size: 1rem;
   font-weight: 650;
-}
-
-.position {
-  padding: 0.25rem 0.625rem;
-  border: 1px solid var(--button-border);
-  border-radius: 999px;
-  font-size: 0.875rem;
 }
 
 .cube-stage {
@@ -216,11 +204,9 @@ h2 {
 }
 
 .turn-count {
-  padding: 0.18rem 0.45rem;
-  border: 1px solid var(--border);
-  border-radius: 0.375rem;
-  background: var(--panel);
-  font-size: 0.75rem;
+  color: var(--ink);
+  font-size: 0.875rem;
+  font-weight: 650;
   font-variant-numeric: tabular-nums;
 }
 
@@ -299,12 +285,12 @@ h2 {
   color: var(--face-ink, #202a37);
 }
 
-.face-marker button[data-color='white'] { --face-color: #f7f8fb; }
-.face-marker button[data-color='orange'] { --face-color: #ff9c47; }
-.face-marker button[data-color='green'] { --face-color: #52c976; }
-.face-marker button[data-color='red'] { --face-color: #b72e3c; --face-ink: #fff; }
-.face-marker button[data-color='blue'] { --face-color: #2057bc; --face-ink: #fff; }
-.face-marker button[data-color='yellow'] { --face-color: #ffdc57; }
+.face-marker button[data-color='white'] { --face-color: #fff; }
+.face-marker button[data-color='orange'] { --face-color: #f90; }
+.face-marker button[data-color='green'] { --face-color: #0f0; }
+.face-marker button[data-color='red'] { --face-color: #f00; --face-ink: #000; }
+.face-marker button[data-color='blue'] { --face-color: #26f; --face-ink: #fff; }
+.face-marker button[data-color='yellow'] { --face-color: #ff0; }
 
 .face-marker-f,
 .face-marker-l {
