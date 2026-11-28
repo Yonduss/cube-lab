@@ -2,7 +2,7 @@
 
 Cube Lab is a browser-based playground for twisty puzzles. It gives GitHub profile visitors a way to explore the puzzles that shaped how I approach software engineering.
 
-The 3×3 prototype supports camera orbit, all six face turns, random-state scrambles, puzzle reset, and customizable keyboard shortcuts. Solve timing is an upcoming MVP feature.
+The 3×3 playground supports camera orbit, all six face turns, random-state scrambles, timed solves, puzzle reset, and customizable keyboard shortcuts.
 
 ## Run locally
 
@@ -26,12 +26,28 @@ The production build bundles the worker separately. To check it at the GitHub Pa
 
 ## Controls
 
-- Press `R`, `L`, `U`, `D`, `F`, or `B` for a clockwise quarter turn. Hold `Shift` with the same letter for the inverse. The **Turn controls** panel includes touch buttons and their current keycaps.
-- Press `0` to reset the camera or `8` to toggle the rear view.
-- Press `7` for **Rotate front** or `9` for **Flip cube**. Subsequent face turns use the new orientation, and the camera stays in place. The three most recent moves appear in the viewer.
-- Press `1` for **Scramble**, `2` for **Reset**, `3` for **Animation**, or `4` for **Face arrows**. Reset is available when there is a position to clear and the cube is idle. Face arrows are available in the default view.
-- Open **Keyboard settings**, select a keycap, and press a new shortcut. Use **Save** to apply changes or **Cancel** to keep the last saved shortcuts. **Restore defaults** loads the defaults for review before saving.
-- The 3×3 position and saved shortcuts persist in the browser for the same site and profile.
+Use the buttons in **Turn controls** or press the shortcut shown on each keycap. Turn directions are as seen when looking straight at the selected face.
+
+| Action | Default shortcuts |
+| --- | --- |
+| Clockwise quarter turn | `R`, `L`, `U`, `D`, `F`, or `B` |
+| Counterclockwise quarter turn | `Shift` + the face letter. For example, `Shift + R` performs **R′**. |
+| Scramble or Reset | `1` to scramble, `2` to reset |
+| Animation or Face arrows | `3` to toggle animation, `4` to toggle face arrows in the default view |
+| Camera | `0` to reset the view, `8` to toggle the rear view |
+| Cube orientation | `7` to rotate the front, `9` to flip the cube |
+
+Drag or swipe the cube to orbit the camera. Select a face arrow to highlight that layer. Rotate front and Flip cube change which face the move letters refer to. The viewer shows the three most recent moves.
+
+To change a shortcut, open **Keyboard settings**, select a keycap, and press a new shortcut. Use **Save** to apply changes or **Cancel** to discard them. **Restore defaults** loads the default assignments for review before saving.
+
+## Timed solves
+
+1. Select **Scramble** or press its shortcut. The timer shows `00:00:00.00` while you inspect the cube.
+2. Make a face turn to start the timer. Camera movement and whole-cube reorientation leave it waiting.
+3. Solve the cube with face turns. The timer keeps the result until the next successful scramble or Reset.
+
+**Reset** restores the cube and clears the timer. To start another timed solve, scramble again. Free play and positions restored after a reload are untimed. The browser saves your last completed cube position and shortcuts.
 
 ## Project documents
 

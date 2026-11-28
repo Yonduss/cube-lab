@@ -1,7 +1,7 @@
 import { Alg, Move } from 'cubing/alg';
 import type { KPattern } from 'cubing/kpuzzle';
 import { setTwistyDebug, TwistyPlayer } from 'cubing/twisty';
-import { useEffect, useEffectEvent, useRef, useState } from 'react';
+import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react';
 import type { PointerEvent } from 'react';
 import { addFaceHighlight } from './faceHighlight';
 import { FaceGuide } from './FaceGuide';
@@ -13,6 +13,7 @@ import { generateScramble, readPosition, savePosition, type CubeMove } from './c
 import { ThemePicker } from './ThemePicker';
 import { TurnHelp } from './TurnHelp';
 import { TurnControls } from './TurnControls';
+import { SolveTimer, type SolveAttempt } from './SolveTimer';
 
 const defaultView = { cameraLatitude: 35, cameraLongitude: 30, cameraDistance: 6 };
 const orbitHintDelay = 3000;
@@ -21,6 +22,8 @@ const turnTimeout = 1200;
 const scrambleTimeout = 15000;
 const solvedOptions = { ignorePuzzleOrientation: true, ignoreCenterOrientation: true };
 
+type AcceptedMove = { move: CubeMove; acceptedAt: number };
+
 export function App({ solvedPattern }: { solvedPattern: KPattern }) {
   const viewer = useRef<HTMLDivElement>(null);
   const player = useRef<TwistyPlayer>(null);
@@ -28,11 +31,13 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
   const camera = useRef({ latitude: defaultView.cameraLatitude, longitude: defaultView.cameraLongitude });
   const drag = useRef<{ id: number; x: number; y: number } | null>(null);
   const scrambleRequest = useRef<symbol | null>(null);
-  const pendingMove = useRef<CubeMove | null>(null);
-  const moveQueue = useRef<CubeMove[]>([]);
-  const startAnimatedMove = useRef<((move: CubeMove) => void) | null>(null);
+  const pendingMove = useRef<AcceptedMove | null>(null);
+  const moveQueue = useRef<AcceptedMove[]>([]);
+  const startAnimatedMove = useRef<((move: AcceptedMove) => void) | null>(null);
   const [algorithm, setAlgorithm] = useState(readPosition);
   const completedMoves = useRef(algorithm);
+  const [attempt, setAttempt] = useState<SolveAttempt>({ phase: 'idle' });
+  const currentAttempt = useRef(attempt);
   const orbitHintTimer = useRef<number | undefined>(undefined);
   const moveID = useRef(0);
   const [turning, setTurning] = useState(false);
@@ -57,11 +62,31 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
   const hasPosition = algorithm.experimentalNumChildAlgNodes() > 0;
   const isSolved = solvedPattern.applyAlg(algorithm).experimentalIsSolved(solvedOptions);
 
-  function recordPosition(next: Alg) {
+  const recordPosition = useCallback((next: Alg) => {
     completedMoves.current = next;
     setAlgorithm(next);
     savePosition(next);
-  }
+  }, []);
+
+  const recordAttempt = useCallback((next: SolveAttempt) => {
+    currentAttempt.current = next;
+    setAttempt(next);
+  }, []);
+
+  const completeMoves = useCallback((moves: AcceptedMove[]) => {
+    let next = completedMoves.current;
+    for (const { move, acceptedAt } of moves) {
+      next = next.concat(move);
+      const active = currentAttempt.current;
+      if (active.phase === 'running' && move !== 'x2' && move !== 'y'
+        && solvedPattern.applyAlg(next).experimentalIsSolved(solvedOptions)) {
+        // Score the solving input without counting time spent in the animation queue.
+        recordAttempt({ phase: 'finished', elapsed: acceptedAt - active.startedAt });
+      }
+    }
+    recordPosition(next);
+    return next;
+  }, [recordAttempt, recordPosition, solvedPattern]);
 
   useEffect(() => {
     setTwistyDebug({ shareAllNewRenderers: 'always' });
@@ -92,19 +117,18 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
 
       // An interrupted animation must not keep the queue locked or drop accepted inputs.
       const moves = [pendingMove.current, ...moveQueue.current];
-      const next = moves.reduce((position, move) => position.concat(move), completedMoves.current);
       pendingMove.current = null;
       moveQueue.current = [];
       animationStarted = false;
       catchUpMove.set({ move: null, amount: 0 });
-      cube.alg = next;
+      cube.alg = completeMoves(moves);
       cube.timestamp = 'end';
-      recordPosition(next);
       setTurning(false);
     }
 
-    function animateMove(move: CubeMove) {
-      pendingMove.current = move;
+    function animateMove(input: AcceptedMove) {
+      pendingMove.current = input;
+      const { move } = input;
       animationStarted = false;
       cube.alg = completedMoves.current.concat(move);
       cube.timestamp = 'end';
@@ -118,7 +142,7 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
         animationStarted = true;
       } else if (animationStarted && pendingMove.current) {
         window.clearTimeout(watchdog);
-        recordPosition(completedMoves.current.concat(pendingMove.current));
+        completeMoves([pendingMove.current]);
         animationStarted = false;
         pendingMove.current = null;
         const nextMove = moveQueue.current.shift();
@@ -138,7 +162,7 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
       cube.remove();
       player.current = null;
     };
-  }, []);
+  }, [completeMoves]);
 
   useEffect(() => {
     const cube = player.current;
@@ -216,24 +240,26 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
   function turn(move: CubeMove) {
     const cube = player.current;
     if (!cube || highlightedFace || scrambleRequest.current) return;
+    const input = { move, acceptedAt: performance.now() };
+    if (currentAttempt.current.phase === 'ready' && move !== 'x2' && move !== 'y') {
+      recordAttempt({ phase: 'running', startedAt: input.acceptedAt });
+    }
     noteMovement();
     const entry = { id: ++moveID.current, move };
     setRecentMoves((recent) => [entry, ...recent].slice(0, 3));
 
     if (pendingMove.current) {
-      moveQueue.current.push(move);
+      moveQueue.current.push(input);
       return;
     }
 
     if (!animateTurns) {
-      const next = completedMoves.current.concat(move);
-      cube.alg = next;
-      recordPosition(next);
+      cube.alg = completeMoves([input]);
       return;
     }
 
     setTurning(true);
-    startAnimatedMove.current?.(move);
+    startAnimatedMove.current?.(input);
   }
 
   function setView(latitude: number, longitude: number) {
@@ -311,6 +337,7 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
       if (scrambleRequest.current !== request) return;
       if (solvedPattern.applyAlg(next).experimentalIsSolved(solvedOptions)) throw new Error('The scramble did not change the solved position.');
       replacePosition(cube, next);
+      recordAttempt({ phase: 'ready' });
     } catch (error) {
       if (scrambleRequest.current !== request) return;
       console.error('Could not scramble the cube.', error);
@@ -330,6 +357,7 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
 
     setScrambleError(false);
     replacePosition(cube, new Alg());
+    recordAttempt({ phase: 'idle' });
   }
 
   const controls: Record<UtilityAction, Control> = {
@@ -394,6 +422,7 @@ export function App({ solvedPattern }: { solvedPattern: KPattern }) {
           <p className="position" role="status">
             {positionLabel}
           </p>
+          <SolveTimer attempt={attempt} />
         </div>
         <div className="cube-stage">
           <div
